@@ -41,15 +41,21 @@ func New(
 			schools := secured.Group("/schools", middleware.RequirePermission(model.PermissionManageSchools))
 			schools.GET("", foundation.ListSchools)
 			schools.POST("", foundation.CreateSchool)
+			schools.PATCH("/:id", foundation.UpdateSchool)
+			schools.DELETE("/:id", foundation.ArchiveSchool)
 
 			years := secured.Group("/academic-years", middleware.RequireSchool())
 			years.GET("", foundation.ListAcademicYears)
 			years.POST("", middleware.RequirePermission(model.PermissionManageAcademicYears), foundation.CreateAcademicYear)
+			years.PATCH("/:id", middleware.RequirePermission(model.PermissionManageAcademicYears), foundation.UpdateAcademicYear)
+			years.DELETE("/:id", middleware.RequirePermission(model.PermissionManageAcademicYears), foundation.DeleteAcademicYear)
 
 			usersRoutes := secured.Group("/users", middleware.RequirePermission(model.PermissionManageUsers))
 			usersRoutes.GET("", foundation.ListUsers)
 			usersRoutes.POST("", foundation.CreateUser)
+			usersRoutes.PATCH("/:id", foundation.UpdateUser)
 			usersRoutes.PATCH("/:id/status", foundation.UpdateUserStatus)
+			usersRoutes.DELETE("/:id", foundation.DisableUser)
 
 			secured.GET("/roles", foundation.ListRoles)
 			secured.GET("/permissions", middleware.RequirePermission(model.PermissionManageRoles), foundation.ListPermissions)

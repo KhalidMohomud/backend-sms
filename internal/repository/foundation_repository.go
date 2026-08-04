@@ -12,8 +12,12 @@ type FoundationRepository interface {
 	CreateSchool(context.Context, *model.School) error
 	ListSchools(context.Context) ([]model.School, error)
 	FindSchoolByID(context.Context, uint64) (*model.School, error)
+	UpdateSchool(context.Context, *model.School) error
 	CreateAcademicYear(context.Context, *model.AcademicYear) error
 	ListAcademicYears(context.Context, uint64) ([]model.AcademicYear, error)
+	FindAcademicYearByID(context.Context, uint64, uint64) (*model.AcademicYear, error)
+	UpdateAcademicYear(context.Context, *model.AcademicYear) error
+	DeleteAcademicYear(context.Context, uint64, uint64) error
 	FindRoleByID(context.Context, uint64) (*model.Role, error)
 	FindRoleByName(context.Context, string) (*model.Role, error)
 	ListRoles(context.Context) ([]model.Role, error)
@@ -44,6 +48,26 @@ func (r *foundationRepository) FindSchoolByID(ctx context.Context, id uint64) (*
 	return &school, nil
 }
 
+func (r *foundationRepository) UpdateSchool(ctx context.Context, school *model.School) error {
+	result := r.db.WithContext(ctx).Model(&model.School{}).
+		Where("sch_no = ?", school.ID).
+		Updates(map[string]any{
+			"sch_name": school.Name,
+			"address":  school.Address,
+			"tell":     school.Phone,
+			"email":    school.Email,
+			"logo":     school.Logo,
+			"status":   school.Status,
+		})
+	if result.Error != nil {
+		return result.Error
+	}
+	if result.RowsAffected == 0 {
+		return ErrNotFound
+	}
+	return nil
+}
+
 func (r *foundationRepository) CreateAcademicYear(ctx context.Context, year *model.AcademicYear) error {
 	return r.db.WithContext(ctx).Create(year).Error
 }
@@ -52,6 +76,42 @@ func (r *foundationRepository) ListAcademicYears(ctx context.Context, schoolID u
 	var years []model.AcademicYear
 	err := r.db.WithContext(ctx).Where("sch_no = ?", schoolID).Order("started DESC").Find(&years).Error
 	return years, err
+}
+
+func (r *foundationRepository) FindAcademicYearByID(ctx context.Context, schoolID, id uint64) (*model.AcademicYear, error) {
+	var year model.AcademicYear
+	if err := r.db.WithContext(ctx).Where("sch_no = ?", schoolID).First(&year, "y_no = ?", id).Error; err != nil {
+		return nil, mapNotFound(err)
+	}
+	return &year, nil
+}
+
+func (r *foundationRepository) UpdateAcademicYear(ctx context.Context, year *model.AcademicYear) error {
+	result := r.db.WithContext(ctx).Model(&model.AcademicYear{}).
+		Where("y_no = ? AND sch_no = ?", year.ID, year.SchoolID).
+		Updates(map[string]any{
+			"year_name": year.YearName,
+			"started":   year.StartsOn,
+			"ended":     year.EndsOn,
+		})
+	if result.Error != nil {
+		return result.Error
+	}
+	if result.RowsAffected == 0 {
+		return ErrNotFound
+	}
+	return nil
+}
+
+func (r *foundationRepository) DeleteAcademicYear(ctx context.Context, schoolID, id uint64) error {
+	result := r.db.WithContext(ctx).Where("y_no = ? AND sch_no = ?", id, schoolID).Delete(&model.AcademicYear{})
+	if result.Error != nil {
+		return result.Error
+	}
+	if result.RowsAffected == 0 {
+		return ErrNotFound
+	}
+	return nil
 }
 
 func (r *foundationRepository) FindRoleByID(ctx context.Context, id uint64) (*model.Role, error) {

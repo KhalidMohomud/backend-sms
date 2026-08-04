@@ -28,7 +28,7 @@ func Authenticate(jwt *security.JWTManager, users repository.UserRepository) gin
 			return
 		}
 		user, err := users.FindByID(c.Request.Context(), tokenPrincipal.UserID)
-		if errors.Is(err, repository.ErrNotFound) || (err == nil && user.Status != model.UserStatusActive) {
+		if errors.Is(err, repository.ErrNotFound) || (err == nil && (user.Status != model.UserStatusActive || (user.SchoolID != nil && (user.School == nil || user.School.Status != model.SchoolStatusActive)))) {
 			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "account is unavailable"})
 			return
 		}

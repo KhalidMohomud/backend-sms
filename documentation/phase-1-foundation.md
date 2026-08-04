@@ -54,6 +54,7 @@ Gin router
 - Successful login clears the failed-login counter.
 - JWT uses HMAC SHA-256 and contains the user ID, school ID, role, permissions, issuer, issue time, and expiration.
 - Authenticated requests reload account status and permissions from PostgreSQL so disabling or changing an account takes effect immediately.
+- Accounts belonging to an inactive school are rejected at login and on every authenticated request, including requests using an older JWT.
 - Login errors do not disclose whether a username exists.
 - Production refuses the development JWT secret.
 
@@ -152,15 +153,29 @@ Secrets must be supplied by the deployment environment and must never be committ
 | `POST` | `/api/v1/auth/login` | Public; username and password |
 | `GET` | `/api/v1/auth/me` | Authenticated |
 | `GET`, `POST` | `/api/v1/schools` | `manage_schools` (SuperAdmin) |
+| `PATCH`, `DELETE` | `/api/v1/schools/{id}` | `manage_schools` (SuperAdmin) |
 | `GET` | `/api/v1/academic-years` | Authenticated, school scoped |
 | `POST` | `/api/v1/academic-years` | `manage_academic_years`, school scoped |
+| `PATCH`, `DELETE` | `/api/v1/academic-years/{id}` | `manage_academic_years`, school scoped |
 | `GET`, `POST` | `/api/v1/users` | `manage_users` |
+| `PATCH` | `/api/v1/users/{id}` | `manage_users`; username, staff link, or role |
 | `PATCH` | `/api/v1/users/{id}/status` | `manage_users`; disable or unlock |
+| `DELETE` | `/api/v1/users/{id}` | `manage_users`; safe account deletion |
 | `GET` | `/api/v1/roles` | `manage_roles` or `manage_users` |
 | `GET` | `/api/v1/permissions` | `manage_roles` |
 | `GET` | `/api/v1/audit-logs` | `view_audit_logs` |
 
 SchoolAdmin can only create, list, disable, or unlock lower-privilege users in its own school. It cannot manage itself, another SchoolAdmin, or any SuperAdmin. SuperAdmin can manage every school and may create another SuperAdmin only with a `NULL` school.
+
+### Update and delete behavior
+
+- `PATCH /schools/{id}` updates only the supplied fields. `DELETE /schools/{id}` is a safe delete: it changes the school status to `inactive`, preserves school history, and immediately blocks its users. A school can be restored by patching its status to `active`.
+- `PATCH /academic-years/{id}` updates only the supplied name or dates and revalidates that the ending date follows the starting date. `DELETE /academic-years/{id}` permanently removes the row. PostgreSQL returns `409 Conflict` when a later phase has dependent records that protect the year.
+- `PATCH /users/{id}` changes supplied username, staff link, or role fields. Tenant checks prevent a SchoolAdmin from editing accounts outside its school or assigning SchoolAdmin/SuperAdmin privileges. `PATCH /users/{id}/status` disables or unlocks users. `DELETE /users/{id}` safely disables the account instead of deleting ownership and audit history. A permitted administrator can restore it through the status endpoint.
+- Roles and permissions are security configuration seeded by migrations in Phase 1, so they are read-only through the API. Future role-management work must include privilege-escalation protections before exposing write routes.
+- Audit logs are intentionally append-only. PostgreSQL rejects both updates and deletes, so no update/delete API exists for them.
+
+Every successful create, update, and delete operation writes an audit entry. Safe deletions use the `DELETE` action with `soft_delete: true` metadata.
 
 ## Login example
 
@@ -188,6 +203,10 @@ curl http://localhost:8081/api/v1/schools \
 - [x] Permission middleware and tests
 - [x] Operator-only SuperAdmin command and test
 - [x] Foundation endpoints
+- [x] School update and safe delete endpoints
+- [x] Academic-year update and protected delete endpoints
+- [x] User safe delete endpoint
+- [x] User profile/role update endpoint with privilege-escalation checks
 - [x] Swagger regeneration
 - [x] Unit tests
 - [x] `go vet`

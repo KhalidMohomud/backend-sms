@@ -18,6 +18,7 @@ type UserRepository interface {
 	FindByID(context.Context, uint64) (*model.User, error)
 	RecordFailedLogin(context.Context, uint64) error
 	RecordSuccessfulLogin(context.Context, uint64, time.Time) error
+	UpdateProfile(context.Context, *model.User) error
 	UpdateStatus(context.Context, uint64, model.UserStatus) error
 	CountSuperAdmins(context.Context) (int64, error)
 }
@@ -55,6 +56,22 @@ func (r *userRepository) RecordFailedLogin(ctx context.Context, id uint64) error
 func (r *userRepository) RecordSuccessfulLogin(ctx context.Context, id uint64, at time.Time) error {
 	return r.db.WithContext(ctx).Model(&model.User{}).Where("usr_no = ?", id).
 		Updates(map[string]any{"failed_logins": 0, "last_login": at}).Error
+}
+
+func (r *userRepository) UpdateProfile(ctx context.Context, user *model.User) error {
+	result := r.db.WithContext(ctx).Model(&model.User{}).Where("usr_no = ?", user.ID).
+		Updates(map[string]any{
+			"username": user.Username,
+			"stf_no":   user.StaffID,
+			"role_no":  user.RoleID,
+		})
+	if result.Error != nil {
+		return result.Error
+	}
+	if result.RowsAffected == 0 {
+		return ErrNotFound
+	}
+	return nil
 }
 
 func (r *userRepository) UpdateStatus(ctx context.Context, id uint64, status model.UserStatus) error {

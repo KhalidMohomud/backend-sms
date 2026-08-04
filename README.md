@@ -51,14 +51,20 @@ Environment variables are read from the process environment; `.env` is consumed 
 - `POST /api/v1/auth/login`
 - `GET /api/v1/auth/me`
 - `GET|POST /api/v1/schools`
+- `PATCH|DELETE /api/v1/schools/:id`
 - `GET|POST /api/v1/academic-years`
+- `PATCH|DELETE /api/v1/academic-years/:id`
 - `GET|POST /api/v1/users`
+- `PATCH /api/v1/users/:id`
 - `PATCH /api/v1/users/:id/status`
+- `DELETE /api/v1/users/:id`
 - `GET /api/v1/roles`
 - `GET /api/v1/permissions`
 - `GET /api/v1/audit-logs`
 
 Except for health and login, these endpoints require a Bearer JWT and the documented permission. SuperAdmin must send `X-School-ID` on school-scoped academic-year routes.
+
+School and user `DELETE` routes are safe deletes: they deactivate or disable the record so historical data remains valid. Academic-year deletion is permanent and returns a conflict when dependent records use the year. Roles and permissions are seeded security configuration, and audit logs are append-only, so Phase 1 intentionally exposes no update/delete routes for those resources.
 
 ## Create the first SuperAdmin
 

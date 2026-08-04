@@ -259,6 +259,63 @@ definitions:
     - password
     - username
     type: object
+  service.UpdateAcademicYearInput:
+    properties:
+      ends_on:
+        example: "2027-06-30"
+        type: string
+      starts_on:
+        example: "2026-09-01"
+        type: string
+      year_name:
+        example: 2026-2027
+        maxLength: 20
+        type: string
+    type: object
+  service.UpdateSchoolInput:
+    properties:
+      address:
+        example: Mogadishu
+        maxLength: 150
+        type: string
+      email:
+        example: info@kobciye.edu
+        maxLength: 254
+        type: string
+      logo:
+        maxLength: 255
+        type: string
+      name:
+        example: Kobciye School
+        maxLength: 100
+        minLength: 2
+        type: string
+      phone:
+        example: "+252610000000"
+        maxLength: 20
+        type: string
+      status:
+        allOf:
+        - $ref: '#/definitions/model.SchoolStatus'
+        enum:
+        - active
+        - inactive
+        example: active
+    type: object
+  service.UpdateUserInput:
+    properties:
+      role_id:
+        example: 3
+        minimum: 1
+        type: integer
+      staff_id:
+        type: integer
+      username:
+        example: registrar1
+        maxLength: 50
+        minLength: 3
+        type: string
+    type: object
   service.UpdateUserStatusInput:
     properties:
       status:
@@ -322,6 +379,95 @@ paths:
       security:
       - BearerAuth: []
       summary: Create an academic year for the resolved school
+      tags:
+      - foundation
+  /academic-years/{id}:
+    delete:
+      description: Permanently deletes an academic year only when no dependent records
+        use it.
+      parameters:
+      - description: Required for SuperAdmin
+        in: header
+        name: X-School-ID
+        type: integer
+      - description: Academic year ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      responses:
+        "204":
+          description: No Content
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/handler.errorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/handler.errorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/handler.errorResponse'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/handler.errorResponse'
+      security:
+      - BearerAuth: []
+      summary: Delete an academic year
+      tags:
+      - foundation
+    patch:
+      consumes:
+      - application/json
+      parameters:
+      - description: Required for SuperAdmin
+        in: header
+        name: X-School-ID
+        type: integer
+      - description: Academic year ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Fields to update
+        in: body
+        name: payload
+        required: true
+        schema:
+          $ref: '#/definitions/service.UpdateAcademicYearInput'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.AcademicYear'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/handler.errorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/handler.errorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/handler.errorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/handler.errorResponse'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/handler.errorResponse'
+      security:
+      - BearerAuth: []
+      summary: Update an academic year
       tags:
       - foundation
   /audit-logs:
@@ -502,6 +648,85 @@ paths:
       summary: Create a school
       tags:
       - foundation
+  /schools/{id}:
+    delete:
+      description: 'Safe delete: sets the school to inactive instead of removing historical
+        data.'
+      parameters:
+      - description: School ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      responses:
+        "204":
+          description: No Content
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/handler.errorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/handler.errorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/handler.errorResponse'
+      security:
+      - BearerAuth: []
+      summary: Deactivate a school
+      tags:
+      - foundation
+    patch:
+      consumes:
+      - application/json
+      description: Partially updates a school. Setting status to inactive immediately
+        blocks its school accounts.
+      parameters:
+      - description: School ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Fields to update
+        in: body
+        name: payload
+        required: true
+        schema:
+          $ref: '#/definitions/service.UpdateSchoolInput'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.School'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/handler.errorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/handler.errorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/handler.errorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/handler.errorResponse'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/handler.errorResponse'
+      security:
+      - BearerAuth: []
+      summary: Update a school
+      tags:
+      - foundation
   /users:
     get:
       parameters:
@@ -543,6 +768,85 @@ paths:
       security:
       - BearerAuth: []
       summary: Create a school user
+      tags:
+      - foundation
+  /users/{id}:
+    delete:
+      description: 'Safe delete: disables login while preserving ownership and audit
+        history.'
+      parameters:
+      - description: User ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      responses:
+        "204":
+          description: No Content
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/handler.errorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/handler.errorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/handler.errorResponse'
+      security:
+      - BearerAuth: []
+      summary: Disable a user account
+      tags:
+      - foundation
+    patch:
+      consumes:
+      - application/json
+      description: Updates supplied username, staff link, or role fields within the
+        permitted school scope.
+      parameters:
+      - description: User ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Fields to update
+        in: body
+        name: payload
+        required: true
+        schema:
+          $ref: '#/definitions/service.UpdateUserInput'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.User'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/handler.errorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/handler.errorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/handler.errorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/handler.errorResponse'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/handler.errorResponse'
+      security:
+      - BearerAuth: []
+      summary: Update a user account
       tags:
       - foundation
   /users/{id}/status:

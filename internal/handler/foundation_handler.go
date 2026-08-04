@@ -63,6 +63,65 @@ func (h *FoundationHandler) ListSchools(c *gin.Context) {
 	c.JSON(http.StatusOK, schools)
 }
 
+// UpdateSchool godoc
+// @Summary Update a school
+// @Description Partially updates a school. Setting status to inactive immediately blocks its school accounts.
+// @Tags foundation
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Param id path int true "School ID"
+// @Param payload body service.UpdateSchoolInput true "Fields to update"
+// @Success 200 {object} model.School
+// @Failure 400 {object} errorResponse
+// @Failure 401 {object} errorResponse
+// @Failure 403 {object} errorResponse
+// @Failure 404 {object} errorResponse
+// @Failure 409 {object} errorResponse
+// @Router /schools/{id} [patch]
+func (h *FoundationHandler) UpdateSchool(c *gin.Context) {
+	schoolID, ok := positivePathID(c, "id", "school")
+	if !ok {
+		return
+	}
+	var input service.UpdateSchoolInput
+	if err := c.ShouldBindJSON(&input); err != nil {
+		c.JSON(http.StatusBadRequest, errorResponse{Error: "invalid school update request"})
+		return
+	}
+	principal, _ := middleware.Principal(c)
+	school, err := h.service.UpdateSchool(c.Request.Context(), principal, schoolID, input, requestMetadata(c))
+	if err != nil {
+		writeServiceError(c, err)
+		return
+	}
+	c.JSON(http.StatusOK, school)
+}
+
+// ArchiveSchool godoc
+// @Summary Deactivate a school
+// @Description Safe delete: sets the school to inactive instead of removing historical data.
+// @Tags foundation
+// @Security BearerAuth
+// @Param id path int true "School ID"
+// @Success 204
+// @Failure 401 {object} errorResponse
+// @Failure 403 {object} errorResponse
+// @Failure 404 {object} errorResponse
+// @Router /schools/{id} [delete]
+func (h *FoundationHandler) ArchiveSchool(c *gin.Context) {
+	schoolID, ok := positivePathID(c, "id", "school")
+	if !ok {
+		return
+	}
+	principal, _ := middleware.Principal(c)
+	if err := h.service.ArchiveSchool(c.Request.Context(), principal, schoolID, requestMetadata(c)); err != nil {
+		writeServiceError(c, err)
+		return
+	}
+	c.Status(http.StatusNoContent)
+}
+
 // CreateAcademicYear godoc
 // @Summary Create an academic year for the resolved school
 // @Tags foundation
@@ -108,6 +167,69 @@ func (h *FoundationHandler) ListAcademicYears(c *gin.Context) {
 	c.JSON(http.StatusOK, years)
 }
 
+// UpdateAcademicYear godoc
+// @Summary Update an academic year
+// @Tags foundation
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Param X-School-ID header int false "Required for SuperAdmin"
+// @Param id path int true "Academic year ID"
+// @Param payload body service.UpdateAcademicYearInput true "Fields to update"
+// @Success 200 {object} model.AcademicYear
+// @Failure 400 {object} errorResponse
+// @Failure 401 {object} errorResponse
+// @Failure 403 {object} errorResponse
+// @Failure 404 {object} errorResponse
+// @Failure 409 {object} errorResponse
+// @Router /academic-years/{id} [patch]
+func (h *FoundationHandler) UpdateAcademicYear(c *gin.Context) {
+	yearID, ok := positivePathID(c, "id", "academic year")
+	if !ok {
+		return
+	}
+	var input service.UpdateAcademicYearInput
+	if err := c.ShouldBindJSON(&input); err != nil {
+		c.JSON(http.StatusBadRequest, errorResponse{Error: "invalid academic year update request"})
+		return
+	}
+	principal, _ := middleware.Principal(c)
+	schoolID, _ := middleware.SchoolID(c)
+	year, err := h.service.UpdateAcademicYear(c.Request.Context(), principal, schoolID, yearID, input, requestMetadata(c))
+	if err != nil {
+		writeServiceError(c, err)
+		return
+	}
+	c.JSON(http.StatusOK, year)
+}
+
+// DeleteAcademicYear godoc
+// @Summary Delete an academic year
+// @Description Permanently deletes an academic year only when no dependent records use it.
+// @Tags foundation
+// @Security BearerAuth
+// @Param X-School-ID header int false "Required for SuperAdmin"
+// @Param id path int true "Academic year ID"
+// @Success 204
+// @Failure 401 {object} errorResponse
+// @Failure 403 {object} errorResponse
+// @Failure 404 {object} errorResponse
+// @Failure 409 {object} errorResponse
+// @Router /academic-years/{id} [delete]
+func (h *FoundationHandler) DeleteAcademicYear(c *gin.Context) {
+	yearID, ok := positivePathID(c, "id", "academic year")
+	if !ok {
+		return
+	}
+	principal, _ := middleware.Principal(c)
+	schoolID, _ := middleware.SchoolID(c)
+	if err := h.service.DeleteAcademicYear(c.Request.Context(), principal, schoolID, yearID, requestMetadata(c)); err != nil {
+		writeServiceError(c, err)
+		return
+	}
+	c.Status(http.StatusNoContent)
+}
+
 // CreateUser godoc
 // @Summary Create a school user
 // @Tags foundation
@@ -130,6 +252,41 @@ func (h *FoundationHandler) CreateUser(c *gin.Context) {
 		return
 	}
 	c.JSON(http.StatusCreated, user)
+}
+
+// UpdateUser godoc
+// @Summary Update a user account
+// @Description Updates supplied username, staff link, or role fields within the permitted school scope.
+// @Tags foundation
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Param id path int true "User ID"
+// @Param payload body service.UpdateUserInput true "Fields to update"
+// @Success 200 {object} model.User
+// @Failure 400 {object} errorResponse
+// @Failure 401 {object} errorResponse
+// @Failure 403 {object} errorResponse
+// @Failure 404 {object} errorResponse
+// @Failure 409 {object} errorResponse
+// @Router /users/{id} [patch]
+func (h *FoundationHandler) UpdateUser(c *gin.Context) {
+	userID, ok := positivePathID(c, "id", "user")
+	if !ok {
+		return
+	}
+	var input service.UpdateUserInput
+	if err := c.ShouldBindJSON(&input); err != nil {
+		c.JSON(http.StatusBadRequest, errorResponse{Error: "invalid user update request"})
+		return
+	}
+	principal, _ := middleware.Principal(c)
+	user, err := h.service.UpdateUser(c.Request.Context(), principal, userID, input, requestMetadata(c))
+	if err != nil {
+		writeServiceError(c, err)
+		return
+	}
+	c.JSON(http.StatusOK, user)
 }
 
 // UpdateUserStatus godoc
@@ -160,6 +317,30 @@ func (h *FoundationHandler) UpdateUserStatus(c *gin.Context) {
 		return
 	}
 	c.JSON(http.StatusOK, user)
+}
+
+// DisableUser godoc
+// @Summary Disable a user account
+// @Description Safe delete: disables login while preserving ownership and audit history.
+// @Tags foundation
+// @Security BearerAuth
+// @Param id path int true "User ID"
+// @Success 204
+// @Failure 401 {object} errorResponse
+// @Failure 403 {object} errorResponse
+// @Failure 404 {object} errorResponse
+// @Router /users/{id} [delete]
+func (h *FoundationHandler) DisableUser(c *gin.Context) {
+	userID, ok := positivePathID(c, "id", "user")
+	if !ok {
+		return
+	}
+	principal, _ := middleware.Principal(c)
+	if err := h.service.DisableUser(c.Request.Context(), principal, userID, requestMetadata(c)); err != nil {
+		writeServiceError(c, err)
+		return
+	}
+	c.Status(http.StatusNoContent)
 }
 
 // ListUsers godoc
@@ -250,13 +431,24 @@ func writeServiceError(c *gin.Context, err error) {
 	switch {
 	case errors.Is(err, service.ErrForbidden), errors.Is(err, service.ErrInvalidScope):
 		c.JSON(http.StatusForbidden, errorResponse{Error: err.Error()})
-	case errors.Is(err, service.ErrDuplicateRecord):
+	case errors.Is(err, service.ErrDuplicateRecord), errors.Is(err, service.ErrConflict):
 		c.JSON(http.StatusConflict, errorResponse{Error: err.Error()})
-	case errors.Is(err, service.ErrInvalidDate), errors.Is(err, repository.ErrNotFound):
+	case errors.Is(err, service.ErrInvalidDate), errors.Is(err, service.ErrNoChanges):
 		c.JSON(http.StatusBadRequest, errorResponse{Error: err.Error()})
+	case errors.Is(err, repository.ErrNotFound):
+		c.JSON(http.StatusNotFound, errorResponse{Error: err.Error()})
 	default:
 		c.JSON(http.StatusInternalServerError, errorResponse{Error: "internal server error"})
 	}
+}
+
+func positivePathID(c *gin.Context, parameter, resource string) (uint64, bool) {
+	id, err := strconv.ParseUint(c.Param(parameter), 10, 64)
+	if err != nil || id == 0 {
+		c.JSON(http.StatusBadRequest, errorResponse{Error: "invalid " + resource + " ID"})
+		return 0, false
+	}
+	return id, true
 }
 
 func optionalUint64(value string) (*uint64, error) {

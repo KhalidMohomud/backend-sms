@@ -45,7 +45,8 @@ func TestSuccessfulLoginResetsFailuresAndReturnsTenantClaims(t *testing.T) {
 	users := &memoryUsers{user: &model.User{
 		ID: 2, SchoolID: &schoolID, Username: "registrar", PasswordHash: hash,
 		Status: model.UserStatusActive, FailedLogins: 3,
-		Role: model.Role{Name: model.RoleRegistrar, Permissions: []model.Permission{{Name: "manage_students"}}},
+		School: &model.School{ID: schoolID, Status: model.SchoolStatusActive},
+		Role:   model.Role{Name: model.RoleRegistrar, Permissions: []model.Permission{{Name: "manage_students"}}},
 	}}
 	audits := &memoryAudits{}
 	manager := security.NewJWTManager(config.JWTConfig{Secret: "test-secret-long-enough", Expiration: time.Hour, Issuer: "test"})
@@ -61,6 +62,24 @@ func TestSuccessfulLoginResetsFailuresAndReturnsTenantClaims(t *testing.T) {
 	parsed, err := manager.Parse(result.AccessToken)
 	if err != nil || parsed.UserID != users.user.ID || parsed.Role != model.RoleRegistrar {
 		t.Fatalf("parsed token = %#v, error = %v", parsed, err)
+	}
+}
+
+func TestLoginRejectsAccountFromInactiveSchool(t *testing.T) {
+	hash, _ := security.HashPassword("correct-password")
+	schoolID := uint64(8)
+	users := &memoryUsers{user: &model.User{
+		ID: 3, SchoolID: &schoolID, Username: "registrar", PasswordHash: hash,
+		Status: model.UserStatusActive,
+		School: &model.School{ID: schoolID, Status: model.SchoolStatusInactive},
+		Role:   model.Role{Name: model.RoleRegistrar},
+	}}
+	manager := security.NewJWTManager(config.JWTConfig{Secret: "test-secret-long-enough", Expiration: time.Hour, Issuer: "test"})
+	service := NewAuthService(users, manager, NewAuditWriter(&memoryAudits{}))
+
+	_, err := service.Login(context.Background(), LoginInput{Username: "registrar", Password: "correct-password"}, RequestMetadata{})
+	if !errors.Is(err, ErrAccountUnavailable) {
+		t.Fatalf("inactive school login error = %v, want ErrAccountUnavailable", err)
 	}
 }
 
@@ -92,6 +111,10 @@ func (m *memoryUsers) RecordFailedLogin(_ context.Context, _ uint64) error {
 func (m *memoryUsers) RecordSuccessfulLogin(_ context.Context, _ uint64, at time.Time) error {
 	m.user.FailedLogins = 0
 	m.user.LastLogin = &at
+	return nil
+}
+func (m *memoryUsers) UpdateProfile(_ context.Context, user *model.User) error {
+	m.user = user
 	return nil
 }
 func (m *memoryUsers) UpdateStatus(_ context.Context, _ uint64, status model.UserStatus) error {

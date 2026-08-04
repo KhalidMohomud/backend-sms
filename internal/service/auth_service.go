@@ -67,7 +67,7 @@ func (s *AuthService) Login(ctx context.Context, input LoginInput, request Reque
 		return nil, ErrInvalidCredentials
 	}
 
-	if user.Status != model.UserStatusActive {
+	if user.Status != model.UserStatusActive || (user.SchoolID != nil && (user.School == nil || user.School.Status != model.SchoolStatusActive)) {
 		if err := s.audit.Write(ctx, &user.ID, user.SchoolID, "LOGIN_BLOCKED", "users", &user.ID, request, map[string]any{"status": user.Status}); err != nil {
 			return nil, err
 		}
