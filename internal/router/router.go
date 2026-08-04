@@ -22,6 +22,5 @@ func New(auth *handler.AuthHandler, health *handler.HealthHandler) *gin.Engine {
 		authRoutes.POST("/register", auth.Register)
 		authRoutes.POST("/login", auth.Login)
 	}
-
 	return r
 }

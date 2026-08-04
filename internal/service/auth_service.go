@@ -19,12 +19,12 @@ var (
 
 type RegisterInput struct {
 	Name     string `json:"name" binding:"required,min=2,max=120" example:"Amina Ali"`
-	Email    string `json:"email" binding:"required,email" example:"amina@example.com"`
+	Email    string `json:"email" binding:"required,email" example:"amina@gmail.com"`
 	Password string `json:"password" binding:"required,min=8,max=72" example:"password123"`
 }
 
 type LoginInput struct {
-	Email    string `json:"email" binding:"required,email" example:"amina@example.com"`
+	Email    string `json:"email" binding:"required,email" example:"amina@gmail.com"`
 	Password string `json:"password" binding:"required" example:"password123"`
 }
 
