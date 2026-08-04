@@ -1,0 +1,116 @@
+// Package app wires application dependencies and manages the HTTP server lifecycle.
+package app
+
+import (
+	"backendapi/internal/config"
+	"backendapi/internal/database"
+	"backendapi/internal/handler"
+	"backendapi/internal/model"
+	"backendapi/internal/repository"
+	"backendapi/internal/router"
+	"backendapi/internal/security"
+	"backendapi/internal/service"
+	"context"
+	"errors"
+	"fmt"
+	"log"
+	"net/http"
+	"time"
+
+	"github.com/redis/go-redis/v9"
+	"gorm.io/gorm"
+)
+
+type App struct {
+	server *http.Server
+	db     *gorm.DB
+	redis  *redis.Client
+}
+
+func New(ctx context.Context, cfg config.Config) (*App, error) {
+	db, err := database.NewPostgres(cfg.Postgres, cfg.App.Environment)
+	if err != nil {
+		return nil, err
+	}
+
+	if cfg.App.AutoMigrate {
+		if err := db.AutoMigrate(&model.User{}); err != nil {
+			closePostgres(db)
+			return nil, fmt.Errorf("run database migrations: %w", err)
+		}
+	}
+
+	redisClient, err := database.NewRedis(ctx, cfg.Redis)
+	if err != nil {
+		closePostgres(db)
+		return nil, err
+	}
+
+	jwtManager := security.NewJWTManager(cfg.JWT)
+	userRepository := repository.NewUserRepository(db)
+	authService := service.NewAuthService(userRepository, jwtManager)
+	engine := router.New(
+		handler.NewAuthHandler(authService),
+		handler.NewHealthHandler(db, redisClient),
+	)
+
+	return &App{
+		server: &http.Server{
+			Addr:              ":" + cfg.App.Port,
+			Handler:           engine,
+			ReadHeaderTimeout: 5 * time.Second,
+		},
+		db:    db,
+		redis: redisClient,
+	}, nil
+}
+
+func (a *App) Run(ctx context.Context) error {
+	serverErr := make(chan error, 1)
+	go func() {
+		log.Printf("API listening on http://localhost%s", a.server.Addr)
+		if err := a.server.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
+			serverErr <- err
+		}
+	}()
+
+	select {
+	case err := <-serverErr:
+		return fmt.Errorf("serve API: %w", err)
+	case <-ctx.Done():
+	}
+
+	shutdownCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	if err := a.server.Shutdown(shutdownCtx); err != nil {
+		return fmt.Errorf("shutdown API: %w", err)
+	}
+	return nil
+}
+
+func (a *App) Close() error {
+	var closeErrors []error
+	if a.redis != nil {
+		if err := a.redis.Close(); err != nil {
+			closeErrors = append(closeErrors, fmt.Errorf("close redis: %w", err))
+		}
+	}
+	if err := closePostgres(a.db); err != nil {
+		closeErrors = append(closeErrors, err)
+	}
+	return errors.Join(closeErrors...)
+}
+
+func closePostgres(db *gorm.DB) error {
+	if db == nil {
+		return nil
+	}
+	sqlDB, err := db.DB()
+	if err != nil {
+		return fmt.Errorf("get postgres connection pool: %w", err)
+	}
+	if err := sqlDB.Close(); err != nil {
+		return fmt.Errorf("close postgres: %w", err)
+	}
+	return nil
+}

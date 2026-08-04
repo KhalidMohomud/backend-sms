@@ -2,6 +2,24 @@
 
 Backend foundation built with Go 1.26, Gin, GORM, PostgreSQL, Redis, JWT, Swagger, and Docker. The code follows a handler → service → repository structure.
 
+## Project structure
+
+```text
+cmd/api/              Small executable entrypoint
+docs/                 Generated Swagger files
+internal/app/         Dependency wiring and server lifecycle
+internal/config/      Environment configuration
+internal/database/    PostgreSQL and Redis clients
+internal/handler/     HTTP request and response handling
+internal/middleware/  Gin authentication middleware
+internal/model/       GORM database models
+internal/repository/  Persistence interfaces and implementations
+internal/router/      Route registration
+internal/security/    JWT and password utilities
+internal/service/     Application business logic
+migrations/           Versioned PostgreSQL migrations
+```
+
 ## Run with Docker
 
 ```sh
