@@ -9,10 +9,11 @@ import (
 )
 
 type Config struct {
-	App      AppConfig
-	Postgres PostgresConfig
-	Redis    RedisConfig
-	JWT      JWTConfig
+	App       AppConfig
+	Postgres  PostgresConfig
+	Redis     RedisConfig
+	JWT       JWTConfig
+	Bootstrap BootstrapConfig
 }
 
 type AppConfig struct {
@@ -45,6 +46,11 @@ type JWTConfig struct {
 	Secret     string
 	Expiration time.Duration
 	Issuer     string
+}
+
+type BootstrapConfig struct {
+	SuperAdminUsername string
+	SuperAdminPassword string
 }
 
 func Load() (Config, error) {
@@ -82,10 +88,20 @@ func Load() (Config, error) {
 			Expiration: expiration,
 			Issuer:     getEnv("JWT_ISSUER", "kobciye-api"),
 		},
+		Bootstrap: BootstrapConfig{
+			SuperAdminUsername: strings.TrimSpace(os.Getenv("BOOTSTRAP_SUPERADMIN_USERNAME")),
+			SuperAdminPassword: os.Getenv("BOOTSTRAP_SUPERADMIN_PASSWORD"),
+		},
 	}
 
 	if cfg.App.Environment == "production" && cfg.JWT.Secret == "local-development-secret-change-me" {
 		return Config{}, fmt.Errorf("JWT_SECRET must be set in production")
+	}
+	if (cfg.Bootstrap.SuperAdminUsername == "") != (cfg.Bootstrap.SuperAdminPassword == "") {
+		return Config{}, fmt.Errorf("both BOOTSTRAP_SUPERADMIN_USERNAME and BOOTSTRAP_SUPERADMIN_PASSWORD must be set together")
+	}
+	if cfg.Bootstrap.SuperAdminPassword != "" && len(cfg.Bootstrap.SuperAdminPassword) < 12 {
+		return Config{}, fmt.Errorf("BOOTSTRAP_SUPERADMIN_PASSWORD must contain at least 12 characters")
 	}
 
 	return cfg, nil
