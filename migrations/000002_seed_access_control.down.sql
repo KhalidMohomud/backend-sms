@@ -1,0 +1,3 @@
+-- Reference access-control data is intentionally preserved on rollback because
+-- deployed users may reference it. The foundation down migration removes all
+-- Phase 1 tables when a complete rollback is explicitly requested.

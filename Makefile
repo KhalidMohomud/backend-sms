@@ -1,4 +1,4 @@
-.PHONY: run build test fmt swagger docker-up docker-down
+.PHONY: run build test fmt swagger docker-up docker-down admin-create
 
 run:
 	go run ./cmd/api
@@ -20,3 +20,7 @@ docker-up:
 
 docker-down:
 	docker compose down
+
+admin-create:
+	@test -n "$(USERNAME)" || (echo "Usage: make admin-create USERNAME=superadmin" && exit 1)
+	docker compose run --rm --entrypoint /admin api create-superadmin --username "$(USERNAME)"

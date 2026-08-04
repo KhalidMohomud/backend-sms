@@ -5,7 +5,6 @@ import (
 	"backendapi/internal/config"
 	"backendapi/internal/database"
 	"backendapi/internal/handler"
-	"backendapi/internal/model"
 	"backendapi/internal/repository"
 	"backendapi/internal/router"
 	"backendapi/internal/security"
@@ -34,10 +33,14 @@ func New(ctx context.Context, cfg config.Config) (*App, error) {
 	}
 
 	if cfg.App.AutoMigrate {
-		if err := db.AutoMigrate(&model.User{}); err != nil {
+		if err := database.MigrateFoundation(db); err != nil {
 			closePostgres(db)
 			return nil, fmt.Errorf("run database migrations: %w", err)
 		}
+	}
+	if err := database.SeedFoundation(ctx, db); err != nil {
+		closePostgres(db)
+		return nil, err
 	}
 
 	redisClient, err := database.NewRedis(ctx, cfg.Redis)
@@ -48,10 +51,17 @@ func New(ctx context.Context, cfg config.Config) (*App, error) {
 
 	jwtManager := security.NewJWTManager(cfg.JWT)
 	userRepository := repository.NewUserRepository(db)
-	authService := service.NewAuthService(userRepository, jwtManager)
+	foundationRepository := repository.NewFoundationRepository(db)
+	auditRepository := repository.NewAuditRepository(db)
+	auditWriter := service.NewAuditWriter(auditRepository)
+	authService := service.NewAuthService(userRepository, jwtManager, auditWriter)
+	foundationService := service.NewFoundationService(foundationRepository, userRepository, auditRepository, auditWriter)
 	engine := router.New(
 		handler.NewAuthHandler(authService),
+		handler.NewFoundationHandler(foundationService),
 		handler.NewHealthHandler(db, redisClient),
+		jwtManager,
+		userRepository,
 	)
 
 	return &App{

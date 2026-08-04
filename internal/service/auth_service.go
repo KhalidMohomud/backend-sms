@@ -1,6 +1,7 @@
 package service
 
 import (
+	"backendapi/internal/authz"
 	"backendapi/internal/model"
 	"backendapi/internal/repository"
 	"backendapi/internal/security"
@@ -8,81 +9,85 @@ import (
 	"errors"
 	"fmt"
 	"strings"
-
-	"gorm.io/gorm"
+	"time"
 )
 
 var (
-	ErrEmailTaken         = errors.New("email is already registered")
-	ErrInvalidCredentials = errors.New("invalid email or password")
+	ErrInvalidCredentials = errors.New("invalid username or password")
+	ErrAccountUnavailable = errors.New("account is locked or disabled")
 )
 
-type RegisterInput struct {
-	Name     string `json:"name" binding:"required,min=2,max=120" example:"Amina Ali"`
-	Email    string `json:"email" binding:"required,email" example:"amina@gmail.com"`
-	Password string `json:"password" binding:"required,min=8,max=72" example:"password123"`
-}
-
 type LoginInput struct {
-	Email    string `json:"email" binding:"required,email" example:"amina@gmail.com"`
-	Password string `json:"password" binding:"required" example:"password123"`
+	Username string `json:"username" binding:"required,min=3,max=50" example:"superadmin"`
+	Password string `json:"password" binding:"required,max=72" example:"a-strong-password"`
 }
 
 type AuthResult struct {
-	Token string      `json:"token"`
-	User  *model.User `json:"user"`
+	AccessToken string          `json:"access_token"`
+	TokenType   string          `json:"token_type" example:"Bearer"`
+	ExpiresAt   time.Time       `json:"expires_at"`
+	User        *model.User     `json:"user"`
+	Principal   authz.Principal `json:"authorization"`
 }
 
 type AuthService struct {
 	users repository.UserRepository
 	jwt   *security.JWTManager
+	audit *AuditWriter
 }
 
-func NewAuthService(users repository.UserRepository, jwt *security.JWTManager) *AuthService {
-	return &AuthService{users: users, jwt: jwt}
+func NewAuthService(users repository.UserRepository, jwt *security.JWTManager, audit *AuditWriter) *AuthService {
+	return &AuthService{users: users, jwt: jwt, audit: audit}
 }
 
-func (s *AuthService) Register(ctx context.Context, input RegisterInput) (*AuthResult, error) {
-	email := strings.ToLower(strings.TrimSpace(input.Email))
-	if _, err := s.users.FindByEmail(ctx, email); err == nil {
-		return nil, ErrEmailTaken
-	} else if !errors.Is(err, repository.ErrNotFound) {
-		return nil, fmt.Errorf("check existing user: %w", err)
-	}
-
-	hash, err := security.HashPassword(input.Password)
-	if err != nil {
-		return nil, fmt.Errorf("hash password: %w", err)
-	}
-	user := &model.User{Name: strings.TrimSpace(input.Name), Email: email, PasswordHash: hash}
-	if err := s.users.Create(ctx, user); err != nil {
-		if errors.Is(err, gorm.ErrDuplicatedKey) {
-			return nil, ErrEmailTaken
-		}
-		return nil, fmt.Errorf("create user: %w", err)
-	}
-
-	token, err := s.jwt.Generate(user.ID)
-	if err != nil {
-		return nil, fmt.Errorf("generate token: %w", err)
-	}
-	return &AuthResult{Token: token, User: user}, nil
-}
-
-func (s *AuthService) Login(ctx context.Context, input LoginInput) (*AuthResult, error) {
-	user, err := s.users.FindByEmail(ctx, strings.ToLower(strings.TrimSpace(input.Email)))
+func (s *AuthService) Login(ctx context.Context, input LoginInput, request RequestMetadata) (*AuthResult, error) {
+	username := strings.ToLower(strings.TrimSpace(input.Username))
+	user, err := s.users.FindByUsername(ctx, username)
 	if errors.Is(err, repository.ErrNotFound) {
+		// Perform bcrypt work even for an unknown username to reduce timing differences.
+		_, _ = security.HashPassword(input.Password)
+		_ = s.audit.Write(ctx, nil, nil, "LOGIN_FAILED", "users", nil, request, map[string]any{"username": username})
 		return nil, ErrInvalidCredentials
 	}
 	if err != nil {
-		return nil, fmt.Errorf("find user: %w", err)
+		return nil, fmt.Errorf("find login account: %w", err)
 	}
+
 	if security.CheckPassword(user.PasswordHash, input.Password) != nil {
+		if user.Status == model.UserStatusActive {
+			if err := s.users.RecordFailedLogin(ctx, user.ID); err != nil {
+				return nil, fmt.Errorf("record failed login: %w", err)
+			}
+		}
+		_ = s.audit.Write(ctx, &user.ID, user.SchoolID, "LOGIN_FAILED", "users", &user.ID, request, nil)
 		return nil, ErrInvalidCredentials
 	}
-	token, err := s.jwt.Generate(user.ID)
-	if err != nil {
-		return nil, fmt.Errorf("generate token: %w", err)
+
+	if user.Status != model.UserStatusActive {
+		_ = s.audit.Write(ctx, &user.ID, user.SchoolID, "LOGIN_BLOCKED", "users", &user.ID, request, map[string]any{"status": user.Status})
+		return nil, ErrAccountUnavailable
 	}
-	return &AuthResult{Token: token, User: user}, nil
+
+	now := time.Now().UTC()
+	if err := s.users.RecordSuccessfulLogin(ctx, user.ID, now); err != nil {
+		return nil, fmt.Errorf("record successful login: %w", err)
+	}
+	user.FailedLogins = 0
+	user.LastLogin = &now
+	principal := authz.FromUser(user)
+	token, expiresAt, err := s.jwt.Generate(principal)
+	if err != nil {
+		return nil, fmt.Errorf("generate access token: %w", err)
+	}
+	if err := s.audit.Write(ctx, &user.ID, user.SchoolID, "LOGIN", "users", &user.ID, request, nil); err != nil {
+		return nil, err
+	}
+
+	return &AuthResult{
+		AccessToken: token,
+		TokenType:   "Bearer",
+		ExpiresAt:   expiresAt,
+		User:        user,
+		Principal:   principal,
+	}, nil
 }

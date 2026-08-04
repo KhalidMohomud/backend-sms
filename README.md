@@ -2,6 +2,8 @@
 
 Backend foundation built with Go 1.26, Gin, GORM, PostgreSQL, Redis, JWT, Swagger, and Docker. The code follows a handler → service → repository structure.
 
+Implementation documentation: [Phase 1 — Foundation](documentation/phase-1-foundation.md).
+
 ## Project structure
 
 ```text
