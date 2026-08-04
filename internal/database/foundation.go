@@ -10,7 +10,7 @@ import (
 )
 
 func MigrateFoundation(db *gorm.DB) error {
-	return db.AutoMigrate(
+	if err := db.AutoMigrate(
 		&model.School{},
 		&model.AcademicYear{},
 		&model.Role{},
@@ -18,7 +18,29 @@ func MigrateFoundation(db *gorm.DB) error {
 		&model.RolePermission{},
 		&model.User{},
 		&model.AuditLog{},
-	)
+	); err != nil {
+		return err
+	}
+	statements := []string{
+		"CREATE UNIQUE INDEX IF NOT EXISTS uq_schools_name_ci ON schools (LOWER(sch_name))",
+		"CREATE UNIQUE INDEX IF NOT EXISTS uq_schools_email_ci ON schools (LOWER(email)) WHERE email IS NOT NULL AND email <> ''",
+		"CREATE UNIQUE INDEX IF NOT EXISTS uq_users_username_ci ON users (LOWER(username))",
+		`CREATE OR REPLACE FUNCTION prevent_audit_log_mutation() RETURNS trigger AS $$
+		BEGIN
+			RAISE EXCEPTION 'audit logs are append-only';
+		END;
+		$$ LANGUAGE plpgsql`,
+		"DROP TRIGGER IF EXISTS audit_logs_no_update_or_delete ON audit_logs",
+		`CREATE TRIGGER audit_logs_no_update_or_delete
+		BEFORE UPDATE OR DELETE ON audit_logs
+		FOR EACH ROW EXECUTE FUNCTION prevent_audit_log_mutation()`,
+	}
+	for _, statement := range statements {
+		if err := db.Exec(statement).Error; err != nil {
+			return fmt.Errorf("apply foundation constraint: %w", err)
+		}
+	}
+	return nil
 }
 
 func SeedFoundation(ctx context.Context, db *gorm.DB) error {

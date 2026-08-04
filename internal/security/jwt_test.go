@@ -1,6 +1,7 @@
 package security
 
 import (
+	"backendapi/internal/authz"
 	"backendapi/internal/config"
 	"testing"
 	"time"
@@ -13,15 +14,17 @@ func TestJWTGenerateAndParse(t *testing.T) {
 		Issuer:     "test",
 	})
 
-	token, err := manager.Generate(42)
+	schoolID := uint64(7)
+	want := authz.Principal{UserID: 42, SchoolID: &schoolID, Role: "SchoolAdmin", Permissions: []string{"manage_users"}}
+	token, _, err := manager.Generate(want)
 	if err != nil {
 		t.Fatalf("Generate() error = %v", err)
 	}
-	userID, err := manager.Parse(token)
+	got, err := manager.Parse(token)
 	if err != nil {
 		t.Fatalf("Parse() error = %v", err)
 	}
-	if userID != 42 {
-		t.Fatalf("Parse() userID = %d, want 42", userID)
+	if got.UserID != want.UserID || got.SchoolID == nil || *got.SchoolID != schoolID || got.Role != want.Role {
+		t.Fatalf("Parse() principal = %#v, want %#v", got, want)
 	}
 }

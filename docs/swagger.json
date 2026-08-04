@@ -8,6 +8,130 @@
     },
     "basePath": "/api/v1",
     "paths": {
+        "/academic-years": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "foundation"
+                ],
+                "summary": "List academic years for the resolved school",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Required for SuperAdmin",
+                        "name": "X-School-ID",
+                        "in": "header"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/model.AcademicYear"
+                            }
+                        }
+                    }
+                }
+            },
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "foundation"
+                ],
+                "summary": "Create an academic year for the resolved school",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Required for SuperAdmin",
+                        "name": "X-School-ID",
+                        "in": "header"
+                    },
+                    {
+                        "description": "Academic year details",
+                        "name": "payload",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/service.CreateAcademicYearInput"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/model.AcademicYear"
+                        }
+                    }
+                }
+            }
+        },
+        "/audit-logs": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "foundation"
+                ],
+                "summary": "List append-only audit logs",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Optional SuperAdmin filter",
+                        "name": "school_id",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Page size, maximum 100",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Pagination offset",
+                        "name": "offset",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/model.AuditLog"
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/auth/login": {
             "post": {
                 "consumes": [
@@ -19,7 +143,7 @@
                 "tags": [
                     "auth"
                 ],
-                "summary": "Log in",
+                "summary": "Log in with a username and password",
                 "parameters": [
                     {
                         "description": "Login details",
@@ -53,10 +177,12 @@
                 }
             }
         },
-        "/auth/register": {
-            "post": {
-                "consumes": [
-                    "application/json"
+        "/auth/me": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
                 ],
                 "produces": [
                     "application/json"
@@ -64,39 +190,16 @@
                 "tags": [
                     "auth"
                 ],
-                "summary": "Register a user",
-                "parameters": [
-                    {
-                        "description": "Registration details",
-                        "name": "payload",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/service.RegisterInput"
-                        }
-                    }
-                ],
+                "summary": "Get the current authorization identity",
                 "responses": {
-                    "201": {
-                        "description": "Created",
+                    "200": {
+                        "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/service.AuthResult"
+                            "$ref": "#/definitions/authz.Principal"
                         }
                     },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/handler.errorResponse"
-                        }
-                    },
-                    "409": {
-                        "description": "Conflict",
-                        "schema": {
-                            "$ref": "#/definitions/handler.errorResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
+                    "401": {
+                        "description": "Unauthorized",
                         "schema": {
                             "$ref": "#/definitions/handler.errorResponse"
                         }
@@ -128,9 +231,286 @@
                     }
                 }
             }
+        },
+        "/permissions": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "foundation"
+                ],
+                "summary": "List permissions",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/model.Permission"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/roles": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "foundation"
+                ],
+                "summary": "List roles and their permissions",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/model.Role"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/schools": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "foundation"
+                ],
+                "summary": "List schools",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/model.School"
+                            }
+                        }
+                    }
+                }
+            },
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "foundation"
+                ],
+                "summary": "Create a school",
+                "parameters": [
+                    {
+                        "description": "School details",
+                        "name": "payload",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/service.CreateSchoolInput"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/model.School"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/handler.errorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/handler.errorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/handler.errorResponse"
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict",
+                        "schema": {
+                            "$ref": "#/definitions/handler.errorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/users": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "foundation"
+                ],
+                "summary": "List users in the permitted school scope",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Optional SuperAdmin filter",
+                        "name": "school_id",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/model.User"
+                            }
+                        }
+                    }
+                }
+            },
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "foundation"
+                ],
+                "summary": "Create a school user",
+                "parameters": [
+                    {
+                        "description": "User details",
+                        "name": "payload",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/service.CreateUserInput"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/model.User"
+                        }
+                    }
+                }
+            }
+        },
+        "/users/{id}/status": {
+            "patch": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "foundation"
+                ],
+                "summary": "Disable or unlock a user account",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "User ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "New account status",
+                        "name": "payload",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/service.UpdateUserStatusInput"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/model.User"
+                        }
+                    }
+                }
+            }
         }
     },
     "definitions": {
+        "authz.Principal": {
+            "type": "object",
+            "properties": {
+                "permissions": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "role": {
+                    "type": "string"
+                },
+                "school_id": {
+                    "type": "integer"
+                },
+                "user_id": {
+                    "type": "integer"
+                }
+            }
+        },
         "handler.errorResponse": {
             "type": "object",
             "properties": {
@@ -149,13 +529,71 @@
                 }
             }
         },
-        "model.User": {
+        "model.AcademicYear": {
             "type": "object",
             "properties": {
                 "created_at": {
                     "type": "string"
                 },
-                "email": {
+                "ends_on": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "school_id": {
+                    "type": "integer"
+                },
+                "starts_on": {
+                    "type": "string"
+                },
+                "updated_at": {
+                    "type": "string"
+                },
+                "year_name": {
+                    "type": "string"
+                }
+            }
+        },
+        "model.AuditLog": {
+            "type": "object",
+            "properties": {
+                "action": {
+                    "type": "string"
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "ip_address": {
+                    "type": "string"
+                },
+                "metadata": {
+                    "type": "object"
+                },
+                "record_id": {
+                    "type": "integer"
+                },
+                "resource_type": {
+                    "type": "string"
+                },
+                "school_id": {
+                    "type": "integer"
+                },
+                "user_id": {
+                    "type": "integer"
+                }
+            }
+        },
+        "model.Permission": {
+            "type": "object",
+            "properties": {
+                "created_at": {
+                    "type": "string"
+                },
+                "description": {
                     "type": "string"
                 },
                 "id": {
@@ -169,57 +607,284 @@
                 }
             }
         },
+        "model.Role": {
+            "type": "object",
+            "properties": {
+                "created_at": {
+                    "type": "string"
+                },
+                "description": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "permissions": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/model.Permission"
+                    }
+                },
+                "updated_at": {
+                    "type": "string"
+                }
+            }
+        },
+        "model.School": {
+            "type": "object",
+            "properties": {
+                "address": {
+                    "type": "string"
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "email": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "logo": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "phone": {
+                    "type": "string"
+                },
+                "status": {
+                    "$ref": "#/definitions/model.SchoolStatus"
+                },
+                "updated_at": {
+                    "type": "string"
+                }
+            }
+        },
+        "model.SchoolStatus": {
+            "type": "string",
+            "enum": [
+                "active",
+                "inactive"
+            ],
+            "x-enum-varnames": [
+                "SchoolStatusActive",
+                "SchoolStatusInactive"
+            ]
+        },
+        "model.User": {
+            "type": "object",
+            "properties": {
+                "created_at": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "last_login": {
+                    "type": "string"
+                },
+                "role": {
+                    "$ref": "#/definitions/model.Role"
+                },
+                "role_id": {
+                    "type": "integer"
+                },
+                "school": {
+                    "$ref": "#/definitions/model.School"
+                },
+                "school_id": {
+                    "type": "integer"
+                },
+                "staff_id": {
+                    "type": "integer"
+                },
+                "status": {
+                    "$ref": "#/definitions/model.UserStatus"
+                },
+                "updated_at": {
+                    "type": "string"
+                },
+                "username": {
+                    "type": "string"
+                }
+            }
+        },
+        "model.UserStatus": {
+            "type": "string",
+            "enum": [
+                "active",
+                "locked",
+                "disabled"
+            ],
+            "x-enum-varnames": [
+                "UserStatusActive",
+                "UserStatusLocked",
+                "UserStatusDisabled"
+            ]
+        },
         "service.AuthResult": {
             "type": "object",
             "properties": {
-                "token": {
+                "access_token": {
                     "type": "string"
+                },
+                "authorization": {
+                    "$ref": "#/definitions/authz.Principal"
+                },
+                "expires_at": {
+                    "type": "string"
+                },
+                "token_type": {
+                    "type": "string",
+                    "example": "Bearer"
                 },
                 "user": {
                     "$ref": "#/definitions/model.User"
                 }
             }
         },
-        "service.LoginInput": {
+        "service.CreateAcademicYearInput": {
             "type": "object",
             "required": [
-                "email",
-                "password"
+                "ends_on",
+                "starts_on",
+                "year_name"
             ],
             "properties": {
-                "email": {
+                "ends_on": {
                     "type": "string",
-                    "example": "amina@example.com"
+                    "example": "2027-06-30"
                 },
-                "password": {
+                "starts_on": {
                     "type": "string",
-                    "example": "password123"
+                    "example": "2026-09-01"
+                },
+                "year_name": {
+                    "type": "string",
+                    "maxLength": 20,
+                    "example": "2026-2027"
                 }
             }
         },
-        "service.RegisterInput": {
+        "service.CreateSchoolInput": {
             "type": "object",
             "required": [
-                "email",
-                "name",
-                "password"
+                "name"
             ],
             "properties": {
+                "address": {
+                    "type": "string",
+                    "maxLength": 150,
+                    "example": "Mogadishu"
+                },
                 "email": {
                     "type": "string",
-                    "example": "amina@example.com"
+                    "maxLength": 254,
+                    "example": "info@kobciye.edu"
+                },
+                "logo": {
+                    "type": "string",
+                    "maxLength": 255
                 },
                 "name": {
                     "type": "string",
-                    "maxLength": 120,
+                    "maxLength": 100,
                     "minLength": 2,
-                    "example": "Amina Ali"
+                    "example": "Kobciye School"
                 },
+                "phone": {
+                    "type": "string",
+                    "maxLength": 20,
+                    "example": "+252610000000"
+                },
+                "status": {
+                    "enum": [
+                        "active",
+                        "inactive"
+                    ],
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/model.SchoolStatus"
+                        }
+                    ],
+                    "example": "active"
+                }
+            }
+        },
+        "service.CreateUserInput": {
+            "type": "object",
+            "required": [
+                "password",
+                "role_id",
+                "username"
+            ],
+            "properties": {
                 "password": {
                     "type": "string",
                     "maxLength": 72,
-                    "minLength": 8,
-                    "example": "password123"
+                    "minLength": 12,
+                    "example": "a-strong-password"
+                },
+                "role_id": {
+                    "type": "integer",
+                    "example": 3
+                },
+                "school_id": {
+                    "type": "integer"
+                },
+                "staff_id": {
+                    "type": "integer"
+                },
+                "username": {
+                    "type": "string",
+                    "maxLength": 50,
+                    "minLength": 3,
+                    "example": "registrar1"
+                }
+            }
+        },
+        "service.LoginInput": {
+            "type": "object",
+            "required": [
+                "password",
+                "username"
+            ],
+            "properties": {
+                "password": {
+                    "type": "string",
+                    "maxLength": 72,
+                    "example": "a-strong-password"
+                },
+                "username": {
+                    "type": "string",
+                    "maxLength": 50,
+                    "minLength": 3,
+                    "example": "superadmin"
+                }
+            }
+        },
+        "service.UpdateUserStatusInput": {
+            "type": "object",
+            "required": [
+                "status"
+            ],
+            "properties": {
+                "status": {
+                    "enum": [
+                        "active",
+                        "disabled"
+                    ],
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/model.UserStatus"
+                        }
+                    ],
+                    "example": "active"
                 }
             }
         }

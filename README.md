@@ -8,6 +8,7 @@ Implementation documentation: [Phase 1 — Foundation](documentation/phase-1-fou
 
 ```text
 cmd/api/              Small executable entrypoint
+cmd/admin/            Operator-only administrative command
 docs/                 Generated Swagger files
 internal/app/         Dependency wiring and server lifecycle
 internal/config/      Environment configuration
@@ -25,8 +26,7 @@ migrations/           Versioned PostgreSQL migrations
 ## Run with Docker
 
 ```sh
-cp .env.example .env
-docker compose up --build
+make docker-up
 ```
 
 The API is available at `http://localhost:8081`, health status at `/health`, and Swagger UI at `/swagger/index.html`. Set `API_HOST_PORT` to use another host port; the container always listens on port 8080 internally.
@@ -46,10 +46,27 @@ Environment variables are read from the process environment; `.env` is consumed 
 ## API endpoints
 
 - `GET /health`
-- `POST /api/v1/auth/register`
 - `POST /api/v1/auth/login`
+- `GET /api/v1/auth/me`
+- `GET|POST /api/v1/schools`
+- `GET|POST /api/v1/academic-years`
+- `GET|POST /api/v1/users`
+- `PATCH /api/v1/users/:id/status`
+- `GET /api/v1/roles`
+- `GET /api/v1/permissions`
+- `GET /api/v1/audit-logs`
 
-Protected routes can use `middleware.Authenticate(jwtManager)` and read the authenticated user ID from `middleware.UserIDKey`.
+Except for health and login, these endpoints require a Bearer JWT and the documented permission. SuperAdmin must send `X-School-ID` on school-scoped academic-year routes.
+
+## Create the first SuperAdmin
+
+After the containers are running, execute the operator-only command. It prompts for the password without displaying it:
+
+```sh
+make admin-create USERNAME=superadmin
+```
+
+The command refuses to run when a SuperAdmin already exists. There is no public registration endpoint and no automatic default account.
 
 ## Development
 

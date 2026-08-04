@@ -31,6 +31,15 @@ func New(ctx context.Context, cfg config.Config) (*App, error) {
 	if err != nil {
 		return nil, err
 	}
+	legacyUsers, err := database.HasLegacyUserSchema(db)
+	if err != nil {
+		closePostgres(db)
+		return nil, fmt.Errorf("inspect users schema: %w", err)
+	}
+	if legacyUsers {
+		closePostgres(db)
+		return nil, fmt.Errorf("legacy email-based users table detected; run 'make admin-archive-legacy-users' before starting Phase 1")
+	}
 
 	if cfg.App.AutoMigrate {
 		if err := database.MigrateFoundation(db); err != nil {

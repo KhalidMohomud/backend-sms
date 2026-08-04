@@ -46,6 +46,7 @@ func New(
 			usersRoutes := secured.Group("/users", middleware.RequirePermission(model.PermissionManageUsers))
 			usersRoutes.GET("", foundation.ListUsers)
 			usersRoutes.POST("", foundation.CreateUser)
+			usersRoutes.PATCH("/:id/status", foundation.UpdateUserStatus)
 
 			secured.GET("/roles", foundation.ListRoles)
 			secured.GET("/permissions", middleware.RequirePermission(model.PermissionManageRoles), foundation.ListPermissions)

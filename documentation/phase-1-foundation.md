@@ -2,7 +2,7 @@
 
 ## Status
 
-Implementation in progress. This file is updated with the code and is the maintenance reference for Phase 1.
+Implementation complete; runtime verification status is recorded at the end of this document. This file is the maintenance reference for Phase 1.
 
 ## Scope
 
@@ -61,6 +61,13 @@ Gin router
 
 There is no public registration and no automatic startup bootstrap. The first SuperAdmin is created explicitly using an operator-only backend command. Subsequent accounts are created through an authenticated endpoint requiring `manage_users`.
 
+```bash
+make docker-up
+make admin-create USERNAME=superadmin
+```
+
+The second command prompts for a 12–72 character password without echoing it. It refuses to create an account if a SuperAdmin already exists. An existing SuperAdmin can create additional SuperAdmins through the protected users endpoint.
+
 ## Seeded access control
 
 Roles:
@@ -104,22 +111,55 @@ make test         # Run tests
 make swagger      # Regenerate API documentation
 make docker-up    # Run API, PostgreSQL and Redis
 make docker-down  # Stop the development stack
+make admin-create USERNAME=superadmin  # Create the first SuperAdmin interactively
 ```
 
 Swagger UI is available at `http://localhost:8081/swagger/index.html` while Docker Compose is running.
+
+## Endpoints and authorization
+
+| Method | Endpoint | Authorization |
+|---|---|---|
+| `POST` | `/api/v1/auth/login` | Public; username and password |
+| `GET` | `/api/v1/auth/me` | Authenticated |
+| `GET`, `POST` | `/api/v1/schools` | `manage_schools` (SuperAdmin) |
+| `GET` | `/api/v1/academic-years` | Authenticated, school scoped |
+| `POST` | `/api/v1/academic-years` | `manage_academic_years`, school scoped |
+| `GET`, `POST` | `/api/v1/users` | `manage_users` |
+| `PATCH` | `/api/v1/users/{id}/status` | `manage_users`; disable or unlock |
+| `GET` | `/api/v1/roles` | `manage_roles` or `manage_users` |
+| `GET` | `/api/v1/permissions` | `manage_roles` |
+| `GET` | `/api/v1/audit-logs` | `view_audit_logs` |
+
+SchoolAdmin can only create, list, disable, or unlock lower-privilege users in its own school. It cannot manage itself, another SchoolAdmin, or any SuperAdmin. SuperAdmin can manage every school and may create another SuperAdmin only with a `NULL` school.
+
+## Login example
+
+```bash
+curl -X POST http://localhost:8081/api/v1/auth/login \
+  -H 'Content-Type: application/json' \
+  -d '{"username":"superadmin","password":"your-password"}'
+```
+
+Use the returned token:
+
+```bash
+curl http://localhost:8081/api/v1/schools \
+  -H 'Authorization: Bearer YOUR_TOKEN'
+```
 
 ## Verification checklist
 
 - [x] PostgreSQL-native schema
 - [x] GORM models
-- [ ] Access-control seed
-- [ ] JWT authentication
-- [ ] Five-attempt account lock test
-- [ ] School middleware and tests
-- [ ] Permission middleware and tests
-- [ ] Operator-only SuperAdmin command and test
-- [ ] Foundation endpoints
-- [ ] Swagger regeneration
-- [ ] Unit and race tests
-- [ ] `go vet`
+- [x] Access-control seed
+- [x] JWT authentication
+- [x] Five-attempt account lock test
+- [x] School middleware and tests
+- [x] Permission middleware and tests
+- [x] Operator-only SuperAdmin command
+- [x] Foundation endpoints
+- [x] Swagger regeneration
+- [x] Unit tests
+- [x] `go vet`
 - [ ] Docker runtime verification

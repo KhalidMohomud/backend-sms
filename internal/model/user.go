@@ -17,8 +17,8 @@ type User struct {
 	Username     string     `gorm:"size:50;not null" json:"username"`
 	PasswordHash string     `gorm:"size:255;not null" json:"-"`
 	RoleID       uint64     `gorm:"column:role_no;not null;index" json:"role_id"`
-	Status       UserStatus `gorm:"type:varchar(20);not null;default:active" json:"status"`
-	FailedLogins uint8      `gorm:"not null;default:0" json:"-"`
+	Status       UserStatus `gorm:"type:varchar(20);not null;default:active;check:ck_users_status,status IN ('active','locked','disabled')" json:"status"`
+	FailedLogins uint8      `gorm:"not null;default:0;check:ck_users_failed_logins,failed_logins BETWEEN 0 AND 5" json:"-"`
 	LastLogin    *time.Time `json:"last_login,omitempty"`
 	CreatedAt    time.Time  `gorm:"not null" json:"created_at"`
 	UpdatedAt    time.Time  `gorm:"not null" json:"updated_at"`

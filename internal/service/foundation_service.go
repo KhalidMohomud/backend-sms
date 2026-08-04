@@ -44,6 +44,10 @@ type CreateUserInput struct {
 	RoleID   uint64  `json:"role_id" binding:"required" example:"3"`
 }
 
+type UpdateUserStatusInput struct {
+	Status model.UserStatus `json:"status" binding:"required,oneof=active disabled" example:"active"`
+}
+
 type FoundationService struct {
 	foundation repository.FoundationRepository
 	users      repository.UserRepository
@@ -142,20 +146,23 @@ func (s *FoundationService) CreateUser(ctx context.Context, actor authz.Principa
 	if err != nil {
 		return nil, err
 	}
-	if role.Name == model.RoleSuperAdmin {
-		return nil, ErrForbidden
-	}
 	if !actor.IsSuperAdmin() {
 		if actor.SchoolID == nil || input.SchoolID == nil || *actor.SchoolID != *input.SchoolID || role.Name == model.RoleSchoolAdmin {
 			return nil, ErrForbidden
 		}
 	}
-	if input.SchoolID == nil {
-		return nil, ErrInvalidScope
-	}
-	school, err := s.foundation.FindSchoolByID(ctx, *input.SchoolID)
-	if err != nil || school.Status != model.SchoolStatusActive {
-		return nil, ErrInvalidScope
+	if role.Name == model.RoleSuperAdmin {
+		if !actor.IsSuperAdmin() || input.SchoolID != nil {
+			return nil, ErrForbidden
+		}
+	} else {
+		if input.SchoolID == nil {
+			return nil, ErrInvalidScope
+		}
+		school, err := s.foundation.FindSchoolByID(ctx, *input.SchoolID)
+		if err != nil || school.Status != model.SchoolStatusActive {
+			return nil, ErrInvalidScope
+		}
 	}
 	hash, err := security.HashPassword(input.Password)
 	if err != nil {
@@ -175,6 +182,32 @@ func (s *FoundationService) CreateUser(ctx context.Context, actor authz.Principa
 		return nil, err
 	}
 	return user, nil
+}
+
+func (s *FoundationService) UpdateUserStatus(ctx context.Context, actor authz.Principal, userID uint64, input UpdateUserStatusInput, request RequestMetadata) (*model.User, error) {
+	if !actor.HasPermission(model.PermissionManageUsers) || actor.UserID == userID {
+		return nil, ErrForbidden
+	}
+	target, err := s.users.FindByID(ctx, userID)
+	if err != nil {
+		return nil, err
+	}
+	if !actor.IsSuperAdmin() {
+		if actor.SchoolID == nil || target.SchoolID == nil || *actor.SchoolID != *target.SchoolID || target.Role.Name == model.RoleSchoolAdmin || target.IsSuperAdmin() {
+			return nil, ErrForbidden
+		}
+	}
+	if err := s.users.UpdateStatus(ctx, userID, input.Status); err != nil {
+		return nil, fmt.Errorf("update user status: %w", err)
+	}
+	target.Status = input.Status
+	if input.Status == model.UserStatusActive {
+		target.FailedLogins = 0
+	}
+	if err := s.audit.Write(ctx, &actor.UserID, target.SchoolID, "UPDATE", "users", &target.ID, request, map[string]any{"status": input.Status}); err != nil {
+		return nil, err
+	}
+	return target, nil
 }
 
 func (s *FoundationService) ListUsers(ctx context.Context, actor authz.Principal, schoolID *uint64) ([]model.User, error) {

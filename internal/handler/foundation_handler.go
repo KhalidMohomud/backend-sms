@@ -2,6 +2,7 @@ package handler
 
 import (
 	"backendapi/internal/middleware"
+	"backendapi/internal/repository"
 	"backendapi/internal/service"
 	"errors"
 	"net/http"
@@ -129,6 +130,36 @@ func (h *FoundationHandler) CreateUser(c *gin.Context) {
 		return
 	}
 	c.JSON(http.StatusCreated, user)
+}
+
+// UpdateUserStatus godoc
+// @Summary Disable or unlock a user account
+// @Tags foundation
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Param id path int true "User ID"
+// @Param payload body service.UpdateUserStatusInput true "New account status"
+// @Success 200 {object} model.User
+// @Router /users/{id}/status [patch]
+func (h *FoundationHandler) UpdateUserStatus(c *gin.Context) {
+	userID, err := strconv.ParseUint(c.Param("id"), 10, 64)
+	if err != nil || userID == 0 {
+		c.JSON(http.StatusBadRequest, errorResponse{Error: "invalid user ID"})
+		return
+	}
+	var input service.UpdateUserStatusInput
+	if err := c.ShouldBindJSON(&input); err != nil {
+		c.JSON(http.StatusBadRequest, errorResponse{Error: "invalid user status request"})
+		return
+	}
+	principal, _ := middleware.Principal(c)
+	user, err := h.service.UpdateUserStatus(c.Request.Context(), principal, userID, input, requestMetadata(c))
+	if err != nil {
+		writeServiceError(c, err)
+		return
+	}
+	c.JSON(http.StatusOK, user)
 }
 
 // ListUsers godoc

@@ -1,5 +1,18 @@
 basePath: /api/v1
 definitions:
+  authz.Principal:
+    properties:
+      permissions:
+        items:
+          type: string
+        type: array
+      role:
+        type: string
+      school_id:
+        type: integer
+      user_id:
+        type: integer
+    type: object
   handler.errorResponse:
     properties:
       error:
@@ -12,11 +25,49 @@ definitions:
         example: ok
         type: string
     type: object
-  model.User:
+  model.AcademicYear:
     properties:
       created_at:
         type: string
-      email:
+      ends_on:
+        type: string
+      id:
+        type: integer
+      school_id:
+        type: integer
+      starts_on:
+        type: string
+      updated_at:
+        type: string
+      year_name:
+        type: string
+    type: object
+  model.AuditLog:
+    properties:
+      action:
+        type: string
+      created_at:
+        type: string
+      id:
+        type: integer
+      ip_address:
+        type: string
+      metadata:
+        type: object
+      record_id:
+        type: integer
+      resource_type:
+        type: string
+      school_id:
+        type: integer
+      user_id:
+        type: integer
+    type: object
+  model.Permission:
+    properties:
+      created_at:
+        type: string
+      description:
         type: string
       id:
         type: integer
@@ -25,44 +76,200 @@ definitions:
       updated_at:
         type: string
     type: object
+  model.Role:
+    properties:
+      created_at:
+        type: string
+      description:
+        type: string
+      id:
+        type: integer
+      name:
+        type: string
+      permissions:
+        items:
+          $ref: '#/definitions/model.Permission'
+        type: array
+      updated_at:
+        type: string
+    type: object
+  model.School:
+    properties:
+      address:
+        type: string
+      created_at:
+        type: string
+      email:
+        type: string
+      id:
+        type: integer
+      logo:
+        type: string
+      name:
+        type: string
+      phone:
+        type: string
+      status:
+        $ref: '#/definitions/model.SchoolStatus'
+      updated_at:
+        type: string
+    type: object
+  model.SchoolStatus:
+    enum:
+    - active
+    - inactive
+    type: string
+    x-enum-varnames:
+    - SchoolStatusActive
+    - SchoolStatusInactive
+  model.User:
+    properties:
+      created_at:
+        type: string
+      id:
+        type: integer
+      last_login:
+        type: string
+      role:
+        $ref: '#/definitions/model.Role'
+      role_id:
+        type: integer
+      school:
+        $ref: '#/definitions/model.School'
+      school_id:
+        type: integer
+      staff_id:
+        type: integer
+      status:
+        $ref: '#/definitions/model.UserStatus'
+      updated_at:
+        type: string
+      username:
+        type: string
+    type: object
+  model.UserStatus:
+    enum:
+    - active
+    - locked
+    - disabled
+    type: string
+    x-enum-varnames:
+    - UserStatusActive
+    - UserStatusLocked
+    - UserStatusDisabled
   service.AuthResult:
     properties:
-      token:
+      access_token:
+        type: string
+      authorization:
+        $ref: '#/definitions/authz.Principal'
+      expires_at:
+        type: string
+      token_type:
+        example: Bearer
         type: string
       user:
         $ref: '#/definitions/model.User'
     type: object
-  service.LoginInput:
+  service.CreateAcademicYearInput:
     properties:
-      email:
-        example: amina@example.com
+      ends_on:
+        example: "2027-06-30"
         type: string
-      password:
-        example: password123
+      starts_on:
+        example: "2026-09-01"
+        type: string
+      year_name:
+        example: 2026-2027
+        maxLength: 20
         type: string
     required:
-    - email
-    - password
+    - ends_on
+    - starts_on
+    - year_name
     type: object
-  service.RegisterInput:
+  service.CreateSchoolInput:
     properties:
+      address:
+        example: Mogadishu
+        maxLength: 150
+        type: string
       email:
-        example: amina@example.com
+        example: info@kobciye.edu
+        maxLength: 254
+        type: string
+      logo:
+        maxLength: 255
         type: string
       name:
-        example: Amina Ali
-        maxLength: 120
+        example: Kobciye School
+        maxLength: 100
         minLength: 2
         type: string
+      phone:
+        example: "+252610000000"
+        maxLength: 20
+        type: string
+      status:
+        allOf:
+        - $ref: '#/definitions/model.SchoolStatus'
+        enum:
+        - active
+        - inactive
+        example: active
+    required:
+    - name
+    type: object
+  service.CreateUserInput:
+    properties:
       password:
-        example: password123
+        example: a-strong-password
         maxLength: 72
-        minLength: 8
+        minLength: 12
+        type: string
+      role_id:
+        example: 3
+        type: integer
+      school_id:
+        type: integer
+      staff_id:
+        type: integer
+      username:
+        example: registrar1
+        maxLength: 50
+        minLength: 3
         type: string
     required:
-    - email
-    - name
     - password
+    - role_id
+    - username
+    type: object
+  service.LoginInput:
+    properties:
+      password:
+        example: a-strong-password
+        maxLength: 72
+        type: string
+      username:
+        example: superadmin
+        maxLength: 50
+        minLength: 3
+        type: string
+    required:
+    - password
+    - username
+    type: object
+  service.UpdateUserStatusInput:
+    properties:
+      status:
+        allOf:
+        - $ref: '#/definitions/model.UserStatus'
+        enum:
+        - active
+        - disabled
+        example: active
+    required:
+    - status
     type: object
 info:
   contact: {}
@@ -70,6 +277,82 @@ info:
   title: Kobciye School API
   version: "1.0"
 paths:
+  /academic-years:
+    get:
+      parameters:
+      - description: Required for SuperAdmin
+        in: header
+        name: X-School-ID
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/model.AcademicYear'
+            type: array
+      security:
+      - BearerAuth: []
+      summary: List academic years for the resolved school
+      tags:
+      - foundation
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Required for SuperAdmin
+        in: header
+        name: X-School-ID
+        type: integer
+      - description: Academic year details
+        in: body
+        name: payload
+        required: true
+        schema:
+          $ref: '#/definitions/service.CreateAcademicYearInput'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/model.AcademicYear'
+      security:
+      - BearerAuth: []
+      summary: Create an academic year for the resolved school
+      tags:
+      - foundation
+  /audit-logs:
+    get:
+      parameters:
+      - description: Optional SuperAdmin filter
+        in: query
+        name: school_id
+        type: integer
+      - description: Page size, maximum 100
+        in: query
+        name: limit
+        type: integer
+      - description: Pagination offset
+        in: query
+        name: offset
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/model.AuditLog'
+            type: array
+      security:
+      - BearerAuth: []
+      summary: List append-only audit logs
+      tags:
+      - foundation
   /auth/login:
     post:
       consumes:
@@ -96,40 +379,25 @@ paths:
           description: Unauthorized
           schema:
             $ref: '#/definitions/handler.errorResponse'
-      summary: Log in
+      summary: Log in with a username and password
       tags:
       - auth
-  /auth/register:
-    post:
-      consumes:
-      - application/json
-      parameters:
-      - description: Registration details
-        in: body
-        name: payload
-        required: true
-        schema:
-          $ref: '#/definitions/service.RegisterInput'
+  /auth/me:
+    get:
       produces:
       - application/json
       responses:
-        "201":
-          description: Created
+        "200":
+          description: OK
           schema:
-            $ref: '#/definitions/service.AuthResult'
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/handler.errorResponse'
-        "409":
-          description: Conflict
+            $ref: '#/definitions/authz.Principal'
+        "401":
+          description: Unauthorized
           schema:
             $ref: '#/definitions/handler.errorResponse'
-        "500":
-          description: Internal Server Error
-          schema:
-            $ref: '#/definitions/handler.errorResponse'
-      summary: Register a user
+      security:
+      - BearerAuth: []
+      summary: Get the current authorization identity
       tags:
       - auth
   /health:
@@ -148,6 +416,163 @@ paths:
       summary: Check service health
       tags:
       - health
+  /permissions:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/model.Permission'
+            type: array
+      security:
+      - BearerAuth: []
+      summary: List permissions
+      tags:
+      - foundation
+  /roles:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/model.Role'
+            type: array
+      security:
+      - BearerAuth: []
+      summary: List roles and their permissions
+      tags:
+      - foundation
+  /schools:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/model.School'
+            type: array
+      security:
+      - BearerAuth: []
+      summary: List schools
+      tags:
+      - foundation
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: School details
+        in: body
+        name: payload
+        required: true
+        schema:
+          $ref: '#/definitions/service.CreateSchoolInput'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/model.School'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/handler.errorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/handler.errorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/handler.errorResponse'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/handler.errorResponse'
+      security:
+      - BearerAuth: []
+      summary: Create a school
+      tags:
+      - foundation
+  /users:
+    get:
+      parameters:
+      - description: Optional SuperAdmin filter
+        in: query
+        name: school_id
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/model.User'
+            type: array
+      security:
+      - BearerAuth: []
+      summary: List users in the permitted school scope
+      tags:
+      - foundation
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: User details
+        in: body
+        name: payload
+        required: true
+        schema:
+          $ref: '#/definitions/service.CreateUserInput'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/model.User'
+      security:
+      - BearerAuth: []
+      summary: Create a school user
+      tags:
+      - foundation
+  /users/{id}/status:
+    patch:
+      consumes:
+      - application/json
+      parameters:
+      - description: User ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: New account status
+        in: body
+        name: payload
+        required: true
+        schema:
+          $ref: '#/definitions/service.UpdateUserStatusInput'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.User'
+      security:
+      - BearerAuth: []
+      summary: Disable or unlock a user account
+      tags:
+      - foundation
 securityDefinitions:
   BearerAuth:
     in: header
