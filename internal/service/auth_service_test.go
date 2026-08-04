@@ -98,7 +98,12 @@ func (m *memoryUsers) UpdateStatus(_ context.Context, _ uint64, status model.Use
 	m.user.Status = status
 	return nil
 }
-func (m *memoryUsers) CountSuperAdmins(context.Context) (int64, error) { return 0, nil }
+func (m *memoryUsers) CountSuperAdmins(context.Context) (int64, error) {
+	if m.user != nil && m.user.IsSuperAdmin() {
+		return 1, nil
+	}
+	return 0, nil
+}
 
 type memoryAudits struct{ entries []model.AuditLog }
 

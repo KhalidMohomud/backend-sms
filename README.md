@@ -29,6 +29,8 @@ migrations/           Versioned PostgreSQL migrations
 make docker-up
 ```
 
+The repository already contains the local `.env` consumed by Docker Compose. For deployment, create an environment-specific `.env` and replace the development JWT secret.
+
 The API is available at `http://localhost:8081`, health status at `/health`, and Swagger UI at `/swagger/index.html`. Set `API_HOST_PORT` to use another host port; the container always listens on port 8080 internally.
 
 PostgreSQL and Redis are available to the API on Docker's private network and are not published to host ports, avoiding conflicts with locally installed database services.

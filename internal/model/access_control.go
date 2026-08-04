@@ -22,7 +22,7 @@ type Role struct {
 	ID          uint64       `gorm:"column:role_no;primaryKey" json:"id"`
 	Name        string       `gorm:"column:role_name;size:40;not null;uniqueIndex" json:"name"`
 	Description string       `gorm:"size:255" json:"description,omitempty"`
-	Permissions []Permission `gorm:"many2many:role_permissions;joinForeignKey:RoleID;joinReferences:PermissionID" json:"permissions,omitempty"`
+	Permissions []Permission `gorm:"many2many:role_permissions;joinForeignKey:RoleNo;joinReferences:PermNo" json:"permissions,omitempty"`
 	CreatedAt   time.Time    `gorm:"not null" json:"created_at"`
 	UpdatedAt   time.Time    `gorm:"not null" json:"updated_at"`
 }

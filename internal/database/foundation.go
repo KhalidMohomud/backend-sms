@@ -10,6 +10,9 @@ import (
 )
 
 func MigrateFoundation(db *gorm.DB) error {
+	if err := ConfigureFoundationModels(db); err != nil {
+		return err
+	}
 	if err := db.AutoMigrate(
 		&model.School{},
 		&model.AcademicYear{},
@@ -39,6 +42,13 @@ func MigrateFoundation(db *gorm.DB) error {
 		if err := db.Exec(statement).Error; err != nil {
 			return fmt.Errorf("apply foundation constraint: %w", err)
 		}
+	}
+	return nil
+}
+
+func ConfigureFoundationModels(db *gorm.DB) error {
+	if err := db.SetupJoinTable(&model.Role{}, "Permissions", &model.RolePermission{}); err != nil {
+		return fmt.Errorf("configure role permissions: %w", err)
 	}
 	return nil
 }

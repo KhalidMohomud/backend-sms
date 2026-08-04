@@ -46,7 +46,9 @@ func (s *AuthService) Login(ctx context.Context, input LoginInput, request Reque
 	if errors.Is(err, repository.ErrNotFound) {
 		// Perform bcrypt work even for an unknown username to reduce timing differences.
 		_, _ = security.HashPassword(input.Password)
-		_ = s.audit.Write(ctx, nil, nil, "LOGIN_FAILED", "users", nil, request, map[string]any{"username": username})
+		if err := s.audit.Write(ctx, nil, nil, "LOGIN_FAILED", "users", nil, request, map[string]any{"username": username}); err != nil {
+			return nil, err
+		}
 		return nil, ErrInvalidCredentials
 	}
 	if err != nil {
@@ -59,12 +61,16 @@ func (s *AuthService) Login(ctx context.Context, input LoginInput, request Reque
 				return nil, fmt.Errorf("record failed login: %w", err)
 			}
 		}
-		_ = s.audit.Write(ctx, &user.ID, user.SchoolID, "LOGIN_FAILED", "users", &user.ID, request, nil)
+		if err := s.audit.Write(ctx, &user.ID, user.SchoolID, "LOGIN_FAILED", "users", &user.ID, request, nil); err != nil {
+			return nil, err
+		}
 		return nil, ErrInvalidCredentials
 	}
 
 	if user.Status != model.UserStatusActive {
-		_ = s.audit.Write(ctx, &user.ID, user.SchoolID, "LOGIN_BLOCKED", "users", &user.ID, request, map[string]any{"status": user.Status})
+		if err := s.audit.Write(ctx, &user.ID, user.SchoolID, "LOGIN_BLOCKED", "users", &user.ID, request, map[string]any{"status": user.Status}); err != nil {
+			return nil, err
+		}
 		return nil, ErrAccountUnavailable
 	}
 

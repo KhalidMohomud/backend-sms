@@ -36,12 +36,17 @@ func run() error {
 		return err
 	}
 	defer closeDB()
+	if err := database.ConfigureFoundationModels(db); err != nil {
+		return err
+	}
 
 	switch os.Args[1] {
 	case "create-superadmin":
 		return createSuperAdmin(context.Background(), cfg, db, os.Args[2:])
 	case "archive-legacy-users":
 		return archiveLegacyUsers(context.Background(), db, os.Args[2:])
+	case "verify-foundation":
+		return verifyFoundation(context.Background(), db)
 	default:
 		return usageError()
 	}
@@ -106,6 +111,39 @@ func archiveLegacyUsers(ctx context.Context, db *gorm.DB, args []string) error {
 	return nil
 }
 
+func verifyFoundation(ctx context.Context, db *gorm.DB) error {
+	requiredTables := []string{"schools", "academic_years", "roles", "permissions", "role_permissions", "users", "audit_logs"}
+	for _, table := range requiredTables {
+		if !db.Migrator().HasTable(table) {
+			return fmt.Errorf("required table %s is missing", table)
+		}
+	}
+	foundation := repository.NewFoundationRepository(db)
+	roles, err := foundation.ListRoles(ctx)
+	if err != nil {
+		return fmt.Errorf("load roles and permissions: %w", err)
+	}
+	permissions, err := foundation.ListPermissions(ctx)
+	if err != nil {
+		return fmt.Errorf("load permissions: %w", err)
+	}
+	permissionCounts := make(map[string]int, len(roles))
+	for _, role := range roles {
+		permissionCounts[role.Name] = len(role.Permissions)
+	}
+	if len(roles) != 5 || len(permissions) != 5 || permissionCounts["SuperAdmin"] != 5 || permissionCounts["SchoolAdmin"] != 3 {
+		return fmt.Errorf("unexpected access-control seed: roles=%d permissions=%d assignments=%v", len(roles), len(permissions), permissionCounts)
+	}
+	var triggerCount int64
+	err = db.WithContext(ctx).Raw(`SELECT COUNT(*) FROM pg_trigger
+		WHERE tgname = 'audit_logs_no_update_or_delete' AND NOT tgisinternal`).Scan(&triggerCount).Error
+	if err != nil || triggerCount != 1 {
+		return fmt.Errorf("append-only audit trigger is not installed")
+	}
+	fmt.Printf("Foundation verified: %d tables, %d roles, %d permissions, audit trigger active.\n", len(requiredTables), len(roles), len(permissions))
+	return nil
+}
+
 func openDatabase(cfg config.Config) (*gorm.DB, func(), error) {
 	db, err := database.NewPostgres(cfg.Postgres, cfg.App.Environment)
 	if err != nil {
@@ -119,5 +157,5 @@ func openDatabase(cfg config.Config) (*gorm.DB, func(), error) {
 }
 
 func usageError() error {
-	return errors.New("usage: admin <create-superadmin|archive-legacy-users> [options]")
+	return errors.New("usage: admin <create-superadmin|archive-legacy-users|verify-foundation> [options]")
 }

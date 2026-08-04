@@ -14,11 +14,15 @@ var ErrSuperAdminExists = errors.New("a SuperAdmin account already exists")
 
 type AdminService struct {
 	users      repository.UserRepository
-	foundation repository.FoundationRepository
+	foundation adminRoleRepository
 	audit      *AuditWriter
 }
 
-func NewAdminService(users repository.UserRepository, foundation repository.FoundationRepository, audit *AuditWriter) *AdminService {
+type adminRoleRepository interface {
+	FindRoleByName(context.Context, string) (*model.Role, error)
+}
+
+func NewAdminService(users repository.UserRepository, foundation adminRoleRepository, audit *AuditWriter) *AdminService {
 	return &AdminService{users: users, foundation: foundation, audit: audit}
 }
 

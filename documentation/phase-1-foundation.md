@@ -103,6 +103,16 @@ migrations/000002_seed_access_control.down.sql
 
 SQL migrations are the production source of truth. `AUTO_MIGRATE=true` is intended only for local development.
 
+### Upgrade from the original scaffold
+
+The original scaffold used an incompatible email-based `users` table. Phase 1 never silently drops it. Startup detects that schema and instructs the operator to run:
+
+```bash
+make admin-archive-legacy-users
+```
+
+The command runs one PostgreSQL transaction: it copies every old row to `legacy_users_email_auth` and only then replaces the obsolete table. On this development database, one legacy row was preserved in that archive.
+
 ## Commands
 
 ```bash
@@ -112,9 +122,28 @@ make swagger      # Regenerate API documentation
 make docker-up    # Run API, PostgreSQL and Redis
 make docker-down  # Stop the development stack
 make admin-create USERNAME=superadmin  # Create the first SuperAdmin interactively
+make admin-verify   # Verify tables, RBAC assignments, and audit trigger
 ```
 
 Swagger UI is available at `http://localhost:8081/swagger/index.html` while Docker Compose is running.
+
+## Environment variables
+
+| Variable | Purpose |
+|---|---|
+| `APP_ENV` | `development` or `production` |
+| `APP_PORT` | Internal API port |
+| `API_HOST_PORT` | Docker host port |
+| `AUTO_MIGRATE` | Local GORM migration switch; disable in production |
+| `POSTGRES_HOST`, `POSTGRES_PORT` | PostgreSQL address |
+| `POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_DB` | PostgreSQL credentials/database |
+| `POSTGRES_SSLMODE` | Use an SSL mode appropriate for deployment |
+| `REDIS_ADDR`, `REDIS_PASSWORD`, `REDIS_DB` | Redis connection |
+| `JWT_SECRET` | JWT signing secret; at least 32 bytes in production |
+| `JWT_EXPIRATION` | Access-token lifetime such as `24h` |
+| `JWT_ISSUER` | Expected JWT issuer |
+
+Secrets must be supplied by the deployment environment and must never be committed. The API does not trust forwarded client-IP headers until a deployment explicitly configures its reverse-proxy allowlist, preventing forged audit IP addresses.
 
 ## Endpoints and authorization
 
@@ -157,9 +186,21 @@ curl http://localhost:8081/api/v1/schools \
 - [x] Five-attempt account lock test
 - [x] School middleware and tests
 - [x] Permission middleware and tests
-- [x] Operator-only SuperAdmin command
+- [x] Operator-only SuperAdmin command and test
 - [x] Foundation endpoints
 - [x] Swagger regeneration
 - [x] Unit tests
 - [x] `go vet`
-- [ ] Docker runtime verification
+- [x] Docker runtime verification
+
+Final runtime result:
+
+```text
+Foundation verifier: 7 tables, 5 roles, 5 permissions, audit trigger active
+GET /health: 200 OK
+GET /api/v1/schools without JWT: 401 Unauthorized
+GET /swagger/index.html: 200 OK
+PostgreSQL: healthy
+Redis: healthy
+API: running on host port 8081
+```

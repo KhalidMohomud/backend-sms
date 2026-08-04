@@ -87,6 +87,9 @@ func Load() (Config, error) {
 	if cfg.App.Environment == "production" && cfg.JWT.Secret == "local-development-secret-change-me" {
 		return Config{}, fmt.Errorf("JWT_SECRET must be set in production")
 	}
+	if cfg.App.Environment == "production" && len(cfg.JWT.Secret) < 32 {
+		return Config{}, fmt.Errorf("JWT_SECRET must contain at least 32 bytes in production")
+	}
 
 	return cfg, nil
 }

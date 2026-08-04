@@ -1,4 +1,4 @@
-.PHONY: run build test fmt swagger docker-up docker-down admin-create admin-archive-legacy-users
+.PHONY: run build test fmt swagger docker-up docker-down admin-create admin-archive-legacy-users admin-verify
 
 run:
 	go run ./cmd/api
@@ -27,3 +27,6 @@ admin-create:
 
 admin-archive-legacy-users:
 	docker compose run --rm --entrypoint /admin api archive-legacy-users --confirm-archive
+
+admin-verify:
+	docker compose run --rm --entrypoint /admin api verify-foundation

@@ -16,6 +16,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/gin-gonic/gin"
 	"github.com/redis/go-redis/v9"
 	"gorm.io/gorm"
 )
@@ -29,6 +30,10 @@ type App struct {
 func New(ctx context.Context, cfg config.Config) (*App, error) {
 	db, err := database.NewPostgres(cfg.Postgres, cfg.App.Environment)
 	if err != nil {
+		return nil, err
+	}
+	if err := database.ConfigureFoundationModels(db); err != nil {
+		closePostgres(db)
 		return nil, err
 	}
 	legacyUsers, err := database.HasLegacyUserSchema(db)
@@ -65,6 +70,9 @@ func New(ctx context.Context, cfg config.Config) (*App, error) {
 	auditWriter := service.NewAuditWriter(auditRepository)
 	authService := service.NewAuthService(userRepository, jwtManager, auditWriter)
 	foundationService := service.NewFoundationService(foundationRepository, userRepository, auditRepository, auditWriter)
+	if cfg.App.Environment == "production" {
+		gin.SetMode(gin.ReleaseMode)
+	}
 	engine := router.New(
 		handler.NewAuthHandler(authService),
 		handler.NewFoundationHandler(foundationService),

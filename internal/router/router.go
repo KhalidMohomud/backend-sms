@@ -21,6 +21,9 @@ func New(
 ) *gin.Engine {
 	r := gin.New()
 	r.Use(gin.Logger(), gin.Recovery())
+	// Do not trust spoofable forwarding headers until deployment config provides
+	// an explicit reverse-proxy allowlist.
+	_ = r.SetTrustedProxies(nil)
 
 	r.GET("/health", health.Check)
 	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
