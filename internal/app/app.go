@@ -74,7 +74,7 @@ func New(ctx context.Context, cfg config.Config) (*App, error) {
 	auditRepository := repository.NewAuditRepository(db)
 	auditWriter := service.NewAuditWriter(auditRepository)
 	authService := service.NewAuthService(userRepository, jwtManager, auditWriter, sessionStore)
-	foundationService := service.NewFoundationService(foundationRepository, userRepository, auditRepository, auditWriter)
+	foundationService := service.NewFoundationService(foundationRepository, userRepository, auditRepository, auditWriter, sessionStore)
 	if cfg.App.Environment == "production" {
 		gin.SetMode(gin.ReleaseMode)
 	}

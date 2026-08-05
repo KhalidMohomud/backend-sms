@@ -343,6 +343,28 @@ func (h *FoundationHandler) DisableUser(c *gin.Context) {
 	c.Status(http.StatusNoContent)
 }
 
+// CreatePasswordResetToken godoc
+// @Summary Create a one-time password reset token for a managed user
+// @Tags foundation
+// @Produce json
+// @Security BearerAuth
+// @Param id path int true "User ID"
+// @Success 201 {object} service.PasswordResetTokenResult
+// @Router /users/{id}/password-reset-token [post]
+func (h *FoundationHandler) CreatePasswordResetToken(c *gin.Context) {
+	userID, ok := positivePathID(c, "id", "user")
+	if !ok {
+		return
+	}
+	principal, _ := middleware.Principal(c)
+	result, err := h.service.CreatePasswordResetToken(c.Request.Context(), principal, userID, requestMetadata(c))
+	if err != nil {
+		writeServiceError(c, err)
+		return
+	}
+	c.JSON(http.StatusCreated, result)
+}
+
 // ListUsers godoc
 // @Summary List users in the permitted school scope
 // @Tags foundation

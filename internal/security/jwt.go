@@ -82,6 +82,6 @@ func (m *JWTManager) ParseIdentity(tokenString string) (TokenIdentity, error) {
 	}
 	return TokenIdentity{
 		Principal: authz.Principal{UserID: userID, SchoolID: claims.SchoolID, Role: claims.Role, Permissions: claims.Permissions},
-		JTI: claims.ID, IssuedAt: claims.IssuedAt.Time, ExpiresAt: claims.ExpiresAt.Time,
+		JTI:       claims.ID, IssuedAt: claims.IssuedAt.Time, ExpiresAt: claims.ExpiresAt.Time,
 	}, nil
 }

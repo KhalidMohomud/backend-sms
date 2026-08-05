@@ -14,7 +14,7 @@ func TestUpdateAndArchiveSchool(t *testing.T) {
 		8: {ID: 8, Name: "Old name", Status: model.SchoolStatusActive},
 	}}
 	audits := &memoryAudits{}
-	service := NewFoundationService(repo, &memoryUsers{}, audits, NewAuditWriter(audits))
+	service := NewFoundationService(repo, &memoryUsers{}, audits, NewAuditWriter(audits), newMemorySessions())
 	actor := authz.Principal{UserID: 1, Role: model.RoleSuperAdmin}
 	newName := "  New name  "
 
@@ -43,7 +43,7 @@ func TestUpdateAndDeleteAcademicYearAreSchoolScoped(t *testing.T) {
 		years:   map[uint64]*model.AcademicYear{4: {ID: 4, SchoolID: schoolID, YearName: "2026", StartsOn: start, EndsOn: end}},
 	}
 	audits := &memoryAudits{}
-	service := NewFoundationService(repo, &memoryUsers{}, audits, NewAuditWriter(audits))
+	service := NewFoundationService(repo, &memoryUsers{}, audits, NewAuditWriter(audits), newMemorySessions())
 	actor := authz.Principal{
 		UserID: 2, SchoolID: &schoolID, Role: model.RoleSchoolAdmin,
 		Permissions: []string{model.PermissionManageAcademicYears},
@@ -68,7 +68,7 @@ func TestUpdateAndDeleteAcademicYearAreSchoolScoped(t *testing.T) {
 func TestDeleteUserDisablesAccount(t *testing.T) {
 	users := &memoryUsers{user: &model.User{ID: 9, Status: model.UserStatusActive, Role: model.Role{Name: model.RoleRegistrar}}}
 	audits := &memoryAudits{}
-	service := NewFoundationService(&memoryFoundation{}, users, audits, NewAuditWriter(audits))
+	service := NewFoundationService(&memoryFoundation{}, users, audits, NewAuditWriter(audits), newMemorySessions())
 	actor := authz.Principal{UserID: 1, Role: model.RoleSuperAdmin}
 	username := "  Updated.User  "
 
@@ -86,8 +86,10 @@ func TestDeleteUserDisablesAccount(t *testing.T) {
 }
 
 type memoryFoundation struct {
-	schools map[uint64]*model.School
-	years   map[uint64]*model.AcademicYear
+	schools     map[uint64]*model.School
+	years       map[uint64]*model.AcademicYear
+	roles       map[uint64]*model.Role
+	permissions map[uint64]model.Permission
 }
 
 func (m *memoryFoundation) CreateSchool(_ context.Context, school *model.School) error {
@@ -158,8 +160,13 @@ func (m *memoryFoundation) DeleteAcademicYear(_ context.Context, schoolID, id ui
 	return nil
 }
 
-func (m *memoryFoundation) FindRoleByID(context.Context, uint64) (*model.Role, error) {
-	return nil, repository.ErrNotFound
+func (m *memoryFoundation) FindRoleByID(_ context.Context, id uint64) (*model.Role, error) {
+	role, ok := m.roles[id]
+	if !ok {
+		return nil, repository.ErrNotFound
+	}
+	copy := *role
+	return &copy, nil
 }
 
 func (m *memoryFoundation) FindRoleByName(context.Context, string) (*model.Role, error) {
@@ -167,6 +174,48 @@ func (m *memoryFoundation) FindRoleByName(context.Context, string) (*model.Role,
 }
 
 func (m *memoryFoundation) ListRoles(context.Context) ([]model.Role, error) { return nil, nil }
+
+func (m *memoryFoundation) CreateRole(_ context.Context, role *model.Role) error {
+	if m.roles == nil {
+		m.roles = make(map[uint64]*model.Role)
+	}
+	if role.ID == 0 {
+		role.ID = uint64(len(m.roles) + 1)
+	}
+	copy := *role
+	m.roles[role.ID] = &copy
+	return nil
+}
+
+func (m *memoryFoundation) UpdateRole(_ context.Context, role *model.Role) error {
+	if _, ok := m.roles[role.ID]; !ok {
+		return repository.ErrNotFound
+	}
+	copy := *role
+	m.roles[role.ID] = &copy
+	return nil
+}
+
+func (m *memoryFoundation) ReplaceRolePermissions(_ context.Context, roleID uint64, permissions []model.Permission) error {
+	role, ok := m.roles[roleID]
+	if !ok {
+		return repository.ErrNotFound
+	}
+	role.Permissions = permissions
+	return nil
+}
+
+func (m *memoryFoundation) FindPermissionsByIDs(_ context.Context, ids []uint64) ([]model.Permission, error) {
+	result := make([]model.Permission, 0, len(ids))
+	for _, id := range ids {
+		permission, ok := m.permissions[id]
+		if !ok {
+			return nil, repository.ErrNotFound
+		}
+		result = append(result, permission)
+	}
+	return result, nil
+}
 
 func (m *memoryFoundation) ListPermissions(context.Context) ([]model.Permission, error) {
 	return nil, nil

@@ -93,6 +93,7 @@ type FoundationService struct {
 	users      repository.UserRepository
 	audits     repository.AuditRepository
 	audit      *AuditWriter
+	sessions   security.SessionRepository
 }
 
 func NewFoundationService(
@@ -100,8 +101,14 @@ func NewFoundationService(
 	users repository.UserRepository,
 	audits repository.AuditRepository,
 	audit *AuditWriter,
+	sessions security.SessionRepository,
 ) *FoundationService {
-	return &FoundationService{foundation: foundation, users: users, audits: audits, audit: audit}
+	return &FoundationService{foundation: foundation, users: users, audits: audits, audit: audit, sessions: sessions}
+}
+
+type PasswordResetTokenResult struct {
+	ResetToken string    `json:"reset_token"`
+	ExpiresAt  time.Time `json:"expires_at"`
 }
 
 func (s *FoundationService) CreateSchool(ctx context.Context, actor authz.Principal, input CreateSchoolInput, request RequestMetadata) (*model.School, error) {
@@ -400,6 +407,21 @@ func (s *FoundationService) UpdateUser(ctx context.Context, actor authz.Principa
 func (s *FoundationService) DisableUser(ctx context.Context, actor authz.Principal, userID uint64, request RequestMetadata) error {
 	_, err := s.changeUserStatus(ctx, actor, userID, model.UserStatusDisabled, "DELETE", request)
 	return err
+}
+
+func (s *FoundationService) CreatePasswordResetToken(ctx context.Context, actor authz.Principal, userID uint64, request RequestMetadata) (*PasswordResetTokenResult, error) {
+	target, err := s.userTarget(ctx, actor, userID)
+	if err != nil {
+		return nil, err
+	}
+	token, expiresAt, err := s.sessions.CreatePasswordReset(ctx, target.ID)
+	if err != nil {
+		return nil, fmt.Errorf("create password reset token: %w", err)
+	}
+	if err := s.audit.Write(ctx, &actor.UserID, target.SchoolID, "PASSWORD_RESET_ISSUED", "users", &target.ID, request, nil); err != nil {
+		return nil, err
+	}
+	return &PasswordResetTokenResult{ResetToken: token, ExpiresAt: expiresAt}, nil
 }
 
 func (s *FoundationService) changeUserStatus(ctx context.Context, actor authz.Principal, userID uint64, status model.UserStatus, auditAction string, request RequestMetadata) (*model.User, error) {

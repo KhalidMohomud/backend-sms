@@ -23,13 +23,13 @@ type LoginInput struct {
 }
 
 type AuthResult struct {
-	AccessToken     string          `json:"access_token"`
-	RefreshToken    string          `json:"refresh_token"`
-	TokenType       string          `json:"token_type" example:"Bearer"`
-	ExpiresAt       time.Time       `json:"expires_at"`
-	RefreshExpiresAt time.Time      `json:"refresh_expires_at"`
-	User            *model.User     `json:"user"`
-	Principal       authz.Principal `json:"authorization"`
+	AccessToken      string          `json:"access_token"`
+	RefreshToken     string          `json:"refresh_token"`
+	TokenType        string          `json:"token_type" example:"Bearer"`
+	ExpiresAt        time.Time       `json:"expires_at"`
+	RefreshExpiresAt time.Time       `json:"refresh_expires_at"`
+	User             *model.User     `json:"user"`
+	Principal        authz.Principal `json:"authorization"`
 }
 
 type RefreshInput struct {
@@ -46,14 +46,14 @@ type ChangePasswordInput struct {
 }
 
 type ResetPasswordInput struct {
-	ResetToken string `json:"reset_token" binding:"required"`
+	ResetToken  string `json:"reset_token" binding:"required"`
 	NewPassword string `json:"new_password" binding:"required,min=12,max=72"`
 }
 
 type AuthService struct {
-	users repository.UserRepository
-	jwt   *security.JWTManager
-	audit *AuditWriter
+	users    repository.UserRepository
+	jwt      *security.JWTManager
+	audit    *AuditWriter
 	sessions security.SessionRepository
 }
 

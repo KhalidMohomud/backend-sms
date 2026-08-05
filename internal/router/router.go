@@ -64,6 +64,7 @@ func New(
 			usersRoutes.PATCH("/:id", foundation.UpdateUser)
 			usersRoutes.PATCH("/:id/status", foundation.UpdateUserStatus)
 			usersRoutes.DELETE("/:id", foundation.DisableUser)
+			usersRoutes.POST("/:id/password-reset-token", foundation.CreatePasswordResetToken)
 
 			roles := secured.Group("/roles")
 			roles.GET("", foundation.ListRoles)

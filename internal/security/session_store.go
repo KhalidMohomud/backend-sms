@@ -14,8 +14,8 @@ import (
 )
 
 var (
-	ErrRateLimited   = errors.New("too many authentication attempts")
-	ErrInvalidToken  = errors.New("invalid or expired session token")
+	ErrRateLimited  = errors.New("too many authentication attempts")
+	ErrInvalidToken = errors.New("invalid or expired session token")
 )
 
 const (
@@ -56,6 +56,7 @@ func (s *SessionStore) AllowLogin(ctx context.Context, ipAddress, username strin
 			if err := s.redis.Expire(ctx, check.key, time.Minute).Err(); err != nil {
 				return fmt.Errorf("expire authentication rate limit: %w", err)
 			}
+		}
 		if count > check.limit {
 			return ErrRateLimited
 		}

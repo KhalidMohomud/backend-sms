@@ -22,7 +22,7 @@ func TestLoginLocksAccountAfterFiveFailedAttempts(t *testing.T) {
 	}}
 	audits := &memoryAudits{}
 	manager := security.NewJWTManager(config.JWTConfig{Secret: "test-secret-long-enough", Expiration: time.Hour, Issuer: "test"})
-	service := NewAuthService(users, manager, NewAuditWriter(audits))
+	service := NewAuthService(users, manager, NewAuditWriter(audits), newMemorySessions())
 
 	for attempt := 1; attempt <= 5; attempt++ {
 		_, err := service.Login(context.Background(), LoginInput{Username: "admin", Password: "wrong-password"}, RequestMetadata{})
@@ -50,7 +50,7 @@ func TestSuccessfulLoginResetsFailuresAndReturnsTenantClaims(t *testing.T) {
 	}}
 	audits := &memoryAudits{}
 	manager := security.NewJWTManager(config.JWTConfig{Secret: "test-secret-long-enough", Expiration: time.Hour, Issuer: "test"})
-	service := NewAuthService(users, manager, NewAuditWriter(audits))
+	service := NewAuthService(users, manager, NewAuditWriter(audits), newMemorySessions())
 
 	result, err := service.Login(context.Background(), LoginInput{Username: "registrar", Password: "correct-password"}, RequestMetadata{})
 	if err != nil {
@@ -75,7 +75,7 @@ func TestLoginRejectsAccountFromInactiveSchool(t *testing.T) {
 		Role:   model.Role{Name: model.RoleRegistrar},
 	}}
 	manager := security.NewJWTManager(config.JWTConfig{Secret: "test-secret-long-enough", Expiration: time.Hour, Issuer: "test"})
-	service := NewAuthService(users, manager, NewAuditWriter(&memoryAudits{}))
+	service := NewAuthService(users, manager, NewAuditWriter(&memoryAudits{}), newMemorySessions())
 
 	_, err := service.Login(context.Background(), LoginInput{Username: "registrar", Password: "correct-password"}, RequestMetadata{})
 	if !errors.Is(err, ErrAccountUnavailable) {
@@ -117,6 +117,12 @@ func (m *memoryUsers) UpdateProfile(_ context.Context, user *model.User) error {
 	m.user = user
 	return nil
 }
+func (m *memoryUsers) UpdatePassword(_ context.Context, _ uint64, hash string) error {
+	m.user.PasswordHash = hash
+	m.user.Status = model.UserStatusActive
+	m.user.FailedLogins = 0
+	return nil
+}
 func (m *memoryUsers) UpdateStatus(_ context.Context, _ uint64, status model.UserStatus) error {
 	m.user.Status = status
 	return nil
@@ -136,4 +142,59 @@ func (m *memoryAudits) Create(_ context.Context, entry *model.AuditLog) error {
 }
 func (m *memoryAudits) List(context.Context, *uint64, int, int) ([]model.AuditLog, error) {
 	return m.entries, nil
+}
+
+type memorySessions struct {
+	refresh map[string]uint64
+	reset   map[string]uint64
+}
+
+func newMemorySessions() *memorySessions {
+	return &memorySessions{refresh: make(map[string]uint64), reset: make(map[string]uint64)}
+}
+
+func (m *memorySessions) AllowLogin(context.Context, string, string) error { return nil }
+func (m *memorySessions) CreateRefresh(_ context.Context, userID uint64) (string, time.Time, error) {
+	token := "refresh-token"
+	m.refresh[token] = userID
+	return token, time.Now().Add(time.Hour), nil
+}
+func (m *memorySessions) RotateRefresh(_ context.Context, token string) (uint64, string, time.Time, error) {
+	userID, ok := m.refresh[token]
+	if !ok {
+		return 0, "", time.Time{}, security.ErrInvalidToken
+	}
+	delete(m.refresh, token)
+	newToken := token + "-rotated"
+	m.refresh[newToken] = userID
+	return userID, newToken, time.Now().Add(time.Hour), nil
+}
+func (m *memorySessions) RevokeRefresh(_ context.Context, token string) error {
+	delete(m.refresh, token)
+	return nil
+}
+func (m *memorySessions) DenyAccess(context.Context, string, time.Time) error { return nil }
+func (m *memorySessions) AccessDenied(context.Context, uint64, string, time.Time) (bool, error) {
+	return false, nil
+}
+func (m *memorySessions) RevokeAll(_ context.Context, userID uint64) error {
+	for token, id := range m.refresh {
+		if id == userID {
+			delete(m.refresh, token)
+		}
+	}
+	return nil
+}
+func (m *memorySessions) CreatePasswordReset(_ context.Context, userID uint64) (string, time.Time, error) {
+	token := "reset-token"
+	m.reset[token] = userID
+	return token, time.Now().Add(time.Minute), nil
+}
+func (m *memorySessions) ConsumePasswordReset(_ context.Context, token string) (uint64, error) {
+	userID, ok := m.reset[token]
+	if !ok {
+		return 0, security.ErrInvalidToken
+	}
+	delete(m.reset, token)
+	return userID, nil
 }
