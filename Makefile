@@ -1,4 +1,4 @@
-.PHONY: run build test fmt swagger docker-up docker-down admin-create admin-archive-legacy-users admin-verify
+.PHONY: run build test test-race test-integration fmt swagger docker-up docker-down admin-create admin-archive-legacy-users admin-verify
 
 run:
 	go run ./cmd/api
@@ -8,6 +8,12 @@ build:
 
 test:
 	go test ./...
+
+test-race:
+	go test -race ./...
+
+test-integration:
+	docker compose --profile test run --rm --build integration-test
 
 fmt:
 	gofmt -w cmd internal

@@ -49,7 +49,12 @@ Environment variables are read from the process environment; `.env` is consumed 
 
 - `GET /health`
 - `POST /api/v1/auth/login`
+- `POST /api/v1/auth/refresh`
+- `POST /api/v1/auth/reset-password`
 - `GET /api/v1/auth/me`
+- `POST /api/v1/auth/logout`
+- `POST /api/v1/auth/logout-all`
+- `POST /api/v1/auth/change-password`
 - `GET|POST /api/v1/schools`
 - `PATCH|DELETE /api/v1/schools/:id`
 - `GET|POST /api/v1/academic-years`
@@ -58,13 +63,19 @@ Environment variables are read from the process environment; `.env` is consumed 
 - `PATCH /api/v1/users/:id`
 - `PATCH /api/v1/users/:id/status`
 - `DELETE /api/v1/users/:id`
+- `POST /api/v1/users/:id/password-reset-token`
 - `GET /api/v1/roles`
+- `POST /api/v1/roles`
+- `PATCH|DELETE /api/v1/roles/:id`
+- `PUT /api/v1/roles/:id/permissions`
 - `GET /api/v1/permissions`
 - `GET /api/v1/audit-logs`
 
 Except for health and login, these endpoints require a Bearer JWT and the documented permission. SuperAdmin must send `X-School-ID` on school-scoped academic-year routes.
 
-School and user `DELETE` routes are safe deletes: they deactivate or disable the record so historical data remains valid. Academic-year deletion is permanent and returns a conflict when dependent records use the year. Roles and permissions are seeded security configuration, and audit logs are append-only, so Phase 1 intentionally exposes no update/delete routes for those resources.
+School, user, and role `DELETE` routes are safe deletes: they deactivate or disable the record so historical data remains valid. Academic-year deletion is permanent and returns a conflict when dependent records use the year. Permissions are seeded actions; SuperAdmin composes custom roles by assigning those permissions. Audit logs remain append-only.
+
+Every API request uses a PostgreSQL transaction with tenant RLS context. Redis provides login rate limits, rotating refresh sessions, access-token revocation, logout-all, and one-time password-reset tokens. Access tokens default to 15 minutes; refresh sessions expire after seven days of inactivity.
 
 ## Create the first SuperAdmin
 
@@ -81,6 +92,8 @@ The command refuses to run when a SuperAdmin already exists. There is no public 
 ```sh
 make fmt
 make test
+make test-race
+make test-integration
 make swagger
 ```
 # backend-sms
