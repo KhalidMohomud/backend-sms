@@ -27,6 +27,7 @@ type SessionStore struct{ redis *redis.Client }
 
 type SessionRepository interface {
 	AllowLogin(context.Context, string, string) error
+	AllowTokenEndpoint(context.Context, string, string) error
 	CreateRefresh(context.Context, uint64) (string, time.Time, error)
 	RotateRefresh(context.Context, string) (uint64, string, time.Time, error)
 	RevokeRefresh(context.Context, string) error
@@ -60,6 +61,27 @@ func (s *SessionStore) AllowLogin(ctx context.Context, ipAddress, username strin
 		if count > check.limit {
 			return ErrRateLimited
 		}
+	}
+	return nil
+}
+
+func (s *SessionStore) AllowTokenEndpoint(ctx context.Context, endpoint, ipAddress string) error {
+	limit := int64(20)
+	if endpoint == "reset-password" {
+		limit = 10
+	}
+	key := "auth:rate:" + hashValue(endpoint) + ":ip:" + hashValue(ipAddress)
+	count, err := s.redis.Incr(ctx, key).Result()
+	if err != nil {
+		return fmt.Errorf("increment authentication endpoint rate limit: %w", err)
+	}
+	if count == 1 {
+		if err := s.redis.Expire(ctx, key, time.Minute).Err(); err != nil {
+			return fmt.Errorf("expire authentication endpoint rate limit: %w", err)
+		}
+	}
+	if count > limit {
+		return ErrRateLimited
 	}
 	return nil
 }

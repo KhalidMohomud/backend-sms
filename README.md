@@ -12,6 +12,7 @@ Implementation documentation:
 ```text
 cmd/api/              Small executable entrypoint
 cmd/admin/            Operator-only administrative command
+cmd/migrate/          Versioned production migration command
 docs/                 Generated Swagger files
 internal/app/         Dependency wiring and server lifecycle
 internal/config/      Environment configuration
@@ -67,13 +68,13 @@ Environment variables are read from the process environment; `.env` is consumed 
 - `GET|POST /api/v1/classes`
 - `GET|PATCH|DELETE /api/v1/classes/:id`
 - `GET|POST /api/v1/academic-years`
-- `PATCH|DELETE /api/v1/academic-years/:id`
+- `GET|PATCH|DELETE /api/v1/academic-years/:id`
 - `GET|POST /api/v1/users`
-- `PATCH /api/v1/users/:id`
+- `GET|PATCH|DELETE /api/v1/users/:id`
 - `PATCH /api/v1/users/:id/status`
-- `DELETE /api/v1/users/:id`
 - `POST /api/v1/users/:id/password-reset-token`
 - `GET /api/v1/roles`
+- `GET /api/v1/roles/:id`
 - `POST /api/v1/roles`
 - `PATCH|DELETE /api/v1/roles/:id`
 - `PUT /api/v1/roles/:id/permissions`
@@ -104,5 +105,6 @@ make test
 make test-race
 make test-integration
 make swagger
+make migrate-status
 ```
 # backend-sms

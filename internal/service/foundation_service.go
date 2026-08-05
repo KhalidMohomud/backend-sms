@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"strings"
 	"time"
+	"unicode/utf8"
 
 	"gorm.io/gorm"
 )
@@ -116,12 +117,16 @@ func (s *FoundationService) CreateSchool(ctx context.Context, actor authz.Princi
 	if !actor.IsSuperAdmin() || !actor.HasPermission(model.PermissionManageSchools) {
 		return nil, ErrForbidden
 	}
+	name, ok := normalizedText(input.Name, 2, 100)
+	if !ok {
+		return nil, ErrInvalidInput
+	}
 	status := input.Status
 	if status == "" {
 		status = model.SchoolStatusActive
 	}
 	school := &model.School{
-		Name: strings.TrimSpace(input.Name), Address: strings.TrimSpace(input.Address),
+		Name: name, Address: strings.TrimSpace(input.Address),
 		Phone: strings.TrimSpace(input.Phone), Email: strings.ToLower(strings.TrimSpace(input.Email)),
 		Logo: strings.TrimSpace(input.Logo), Status: status,
 	}
@@ -163,7 +168,11 @@ func (s *FoundationService) UpdateSchool(ctx context.Context, actor authz.Princi
 		return nil, err
 	}
 	if input.Name != nil {
-		school.Name = strings.TrimSpace(*input.Name)
+		name, ok := normalizedText(*input.Name, 2, 100)
+		if !ok {
+			return nil, ErrInvalidInput
+		}
+		school.Name = name
 	}
 	if input.Address != nil {
 		school.Address = strings.TrimSpace(*input.Address)
@@ -221,6 +230,10 @@ func (s *FoundationService) CreateAcademicYear(ctx context.Context, actor authz.
 	if school.Status != model.SchoolStatusActive {
 		return nil, ErrInvalidScope
 	}
+	yearName, ok := normalizedText(input.YearName, 1, 20)
+	if !ok {
+		return nil, ErrInvalidInput
+	}
 	startsOn, err := time.Parse("2006-01-02", input.StartsOn)
 	if err != nil {
 		return nil, ErrInvalidDate
@@ -229,7 +242,7 @@ func (s *FoundationService) CreateAcademicYear(ctx context.Context, actor authz.
 	if err != nil || !endsOn.After(startsOn) {
 		return nil, ErrInvalidDate
 	}
-	year := &model.AcademicYear{SchoolID: schoolID, YearName: strings.TrimSpace(input.YearName), StartsOn: startsOn, EndsOn: endsOn}
+	year := &model.AcademicYear{SchoolID: schoolID, YearName: yearName, StartsOn: startsOn, EndsOn: endsOn}
 	if err := s.foundation.CreateAcademicYear(ctx, year); err != nil {
 		if errors.Is(err, gorm.ErrDuplicatedKey) {
 			return nil, ErrDuplicateRecord
@@ -249,6 +262,13 @@ func (s *FoundationService) ListAcademicYears(ctx context.Context, actor authz.P
 	return s.foundation.ListAcademicYears(ctx, schoolID)
 }
 
+func (s *FoundationService) GetAcademicYear(ctx context.Context, actor authz.Principal, schoolID, yearID uint64) (*model.AcademicYear, error) {
+	if !actor.IsSuperAdmin() && (actor.SchoolID == nil || *actor.SchoolID != schoolID) {
+		return nil, ErrInvalidScope
+	}
+	return s.foundation.FindAcademicYearByID(ctx, schoolID, yearID)
+}
+
 func (s *FoundationService) UpdateAcademicYear(ctx context.Context, actor authz.Principal, schoolID, yearID uint64, input UpdateAcademicYearInput, request RequestMetadata) (*model.AcademicYear, error) {
 	if !actor.HasPermission(model.PermissionManageAcademicYears) {
 		return nil, ErrForbidden
@@ -264,9 +284,9 @@ func (s *FoundationService) UpdateAcademicYear(ctx context.Context, actor authz.
 		return nil, err
 	}
 	if input.YearName != nil {
-		name := strings.TrimSpace(*input.YearName)
-		if name == "" {
-			return nil, ErrNoChanges
+		name, ok := normalizedText(*input.YearName, 1, 20)
+		if !ok {
+			return nil, ErrInvalidInput
 		}
 		year.YearName = name
 	}
@@ -320,6 +340,11 @@ func (s *FoundationService) CreateUser(ctx context.Context, actor authz.Principa
 	if !actor.HasPermission(model.PermissionManageUsers) {
 		return nil, ErrForbidden
 	}
+	username, ok := normalizedText(input.Username, 3, 50)
+	if !ok {
+		return nil, ErrInvalidInput
+	}
+	username = strings.ToLower(username)
 	role, err := s.foundation.FindRoleByID(ctx, input.RoleID)
 	if err != nil {
 		return nil, err
@@ -350,7 +375,7 @@ func (s *FoundationService) CreateUser(ctx context.Context, actor authz.Principa
 		return nil, fmt.Errorf("hash password: %w", err)
 	}
 	user := &model.User{
-		SchoolID: input.SchoolID, StaffID: input.StaffID, Username: strings.ToLower(strings.TrimSpace(input.Username)),
+		SchoolID: input.SchoolID, StaffID: input.StaffID, Username: username,
 		PasswordHash: hash, RoleID: role.ID, Role: *role, Status: model.UserStatusActive,
 	}
 	if err := s.users.Create(ctx, user); err != nil {
@@ -378,7 +403,11 @@ func (s *FoundationService) UpdateUser(ctx context.Context, actor authz.Principa
 		return nil, err
 	}
 	if input.Username != nil {
-		target.Username = strings.ToLower(strings.TrimSpace(*input.Username))
+		username, ok := normalizedText(*input.Username, 3, 50)
+		if !ok {
+			return nil, ErrInvalidInput
+		}
+		target.Username = strings.ToLower(username)
 	}
 	if input.StaffID != nil {
 		target.StaffID = input.StaffID
@@ -475,6 +504,20 @@ func (s *FoundationService) ListUsers(ctx context.Context, actor authz.Principal
 	return s.foundation.ListUsers(ctx, schoolID)
 }
 
+func (s *FoundationService) GetUser(ctx context.Context, actor authz.Principal, userID uint64) (*model.User, error) {
+	if !actor.HasPermission(model.PermissionManageUsers) {
+		return nil, ErrForbidden
+	}
+	user, err := s.users.FindByID(ctx, userID)
+	if err != nil {
+		return nil, err
+	}
+	if !actor.IsSuperAdmin() && (actor.SchoolID == nil || user.SchoolID == nil || *actor.SchoolID != *user.SchoolID) {
+		return nil, ErrForbidden
+	}
+	return user, nil
+}
+
 func (s *FoundationService) ListRoles(ctx context.Context, actor authz.Principal) ([]model.Role, error) {
 	if !actor.HasPermission(model.PermissionManageRoles) && !actor.HasPermission(model.PermissionManageUsers) {
 		return nil, ErrForbidden
@@ -482,11 +525,21 @@ func (s *FoundationService) ListRoles(ctx context.Context, actor authz.Principal
 	return s.foundation.ListRoles(ctx)
 }
 
+func (s *FoundationService) GetRole(ctx context.Context, actor authz.Principal, roleID uint64) (*model.Role, error) {
+	if !actor.HasPermission(model.PermissionManageRoles) && !actor.HasPermission(model.PermissionManageUsers) {
+		return nil, ErrForbidden
+	}
+	return s.foundation.FindRoleByID(ctx, roleID)
+}
+
 func (s *FoundationService) CreateRole(ctx context.Context, actor authz.Principal, input CreateRoleInput, request RequestMetadata) (*model.Role, error) {
 	if !canManageRoles(actor) {
 		return nil, ErrForbidden
 	}
-	name := strings.TrimSpace(input.Name)
+	name, ok := normalizedText(input.Name, 2, 40)
+	if !ok {
+		return nil, ErrInvalidInput
+	}
 	if strings.EqualFold(name, model.RoleSuperAdmin) {
 		return nil, ErrProtectedRecord
 	}
@@ -522,7 +575,10 @@ func (s *FoundationService) UpdateRole(ctx context.Context, actor authz.Principa
 		return nil, err
 	}
 	if input.Name != nil {
-		name := strings.TrimSpace(*input.Name)
+		name, ok := normalizedText(*input.Name, 2, 40)
+		if !ok {
+			return nil, ErrInvalidInput
+		}
 		if strings.EqualFold(name, model.RoleSuperAdmin) {
 			return nil, ErrProtectedRecord
 		}
@@ -623,6 +679,12 @@ func roleEscalates(actor authz.Principal, role *model.Role) bool {
 		}
 	}
 	return false
+}
+
+func normalizedText(value string, minimum, maximum int) (string, bool) {
+	value = strings.TrimSpace(value)
+	length := utf8.RuneCountInString(value)
+	return value, length >= minimum && length <= maximum
 }
 
 func (s *FoundationService) ListPermissions(ctx context.Context, actor authz.Principal) ([]model.Permission, error) {

@@ -114,6 +114,9 @@ func (s *AuthService) Login(ctx context.Context, input LoginInput, request Reque
 }
 
 func (s *AuthService) Refresh(ctx context.Context, input RefreshInput, request RequestMetadata) (*AuthResult, error) {
+	if err := s.sessions.AllowTokenEndpoint(ctx, "refresh", request.IPAddress); err != nil {
+		return nil, err
+	}
 	userID, newRefresh, refreshExpiresAt, err := s.sessions.RotateRefresh(ctx, input.RefreshToken)
 	if err != nil {
 		return nil, err
@@ -168,6 +171,9 @@ func (s *AuthService) ChangePassword(ctx context.Context, actor authz.Principal,
 }
 
 func (s *AuthService) ResetPassword(ctx context.Context, input ResetPasswordInput, request RequestMetadata) error {
+	if err := s.sessions.AllowTokenEndpoint(ctx, "reset-password", request.IPAddress); err != nil {
+		return err
+	}
 	userID, err := s.sessions.ConsumePasswordReset(ctx, input.ResetToken)
 	if err != nil {
 		return err

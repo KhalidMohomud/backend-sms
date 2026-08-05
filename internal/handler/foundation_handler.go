@@ -193,6 +193,34 @@ func (h *FoundationHandler) ListAcademicYears(c *gin.Context) {
 	c.JSON(http.StatusOK, years)
 }
 
+// GetAcademicYear godoc
+// @Summary Get an academic year by ID
+// @Tags foundation
+// @Produce json
+// @Security BearerAuth
+// @Param X-School-ID header int false "Required for SuperAdmin"
+// @Param id path int true "Academic year ID"
+// @Success 200 {object} model.AcademicYear
+// @Failure 400 {object} errorResponse
+// @Failure 401 {object} errorResponse
+// @Failure 403 {object} errorResponse
+// @Failure 404 {object} errorResponse
+// @Router /academic-years/{id} [get]
+func (h *FoundationHandler) GetAcademicYear(c *gin.Context) {
+	yearID, ok := positivePathID(c, "id", "academic year")
+	if !ok {
+		return
+	}
+	principal, _ := middleware.Principal(c)
+	schoolID, _ := middleware.SchoolID(c)
+	year, err := h.service.GetAcademicYear(c.Request.Context(), principal, schoolID, yearID)
+	if err != nil {
+		writeServiceError(c, err)
+		return
+	}
+	c.JSON(http.StatusOK, year)
+}
+
 // UpdateAcademicYear godoc
 // @Summary Update an academic year
 // @Tags foundation
@@ -414,6 +442,32 @@ func (h *FoundationHandler) ListUsers(c *gin.Context) {
 	c.JSON(http.StatusOK, users)
 }
 
+// GetUser godoc
+// @Summary Get a user by ID
+// @Tags foundation
+// @Produce json
+// @Security BearerAuth
+// @Param id path int true "User ID"
+// @Success 200 {object} model.User
+// @Failure 400 {object} errorResponse
+// @Failure 401 {object} errorResponse
+// @Failure 403 {object} errorResponse
+// @Failure 404 {object} errorResponse
+// @Router /users/{id} [get]
+func (h *FoundationHandler) GetUser(c *gin.Context) {
+	userID, ok := positivePathID(c, "id", "user")
+	if !ok {
+		return
+	}
+	principal, _ := middleware.Principal(c)
+	user, err := h.service.GetUser(c.Request.Context(), principal, userID)
+	if err != nil {
+		writeServiceError(c, err)
+		return
+	}
+	c.JSON(http.StatusOK, user)
+}
+
 // ListRoles godoc
 // @Summary List roles and their permissions
 // @Tags foundation
@@ -429,6 +483,32 @@ func (h *FoundationHandler) ListRoles(c *gin.Context) {
 		return
 	}
 	c.JSON(http.StatusOK, roles)
+}
+
+// GetRole godoc
+// @Summary Get a role and its permissions by ID
+// @Tags foundation
+// @Produce json
+// @Security BearerAuth
+// @Param id path int true "Role ID"
+// @Success 200 {object} model.Role
+// @Failure 400 {object} errorResponse
+// @Failure 401 {object} errorResponse
+// @Failure 403 {object} errorResponse
+// @Failure 404 {object} errorResponse
+// @Router /roles/{id} [get]
+func (h *FoundationHandler) GetRole(c *gin.Context) {
+	roleID, ok := positivePathID(c, "id", "role")
+	if !ok {
+		return
+	}
+	principal, _ := middleware.Principal(c)
+	role, err := h.service.GetRole(c.Request.Context(), principal, roleID)
+	if err != nil {
+		writeServiceError(c, err)
+		return
+	}
+	c.JSON(http.StatusOK, role)
 }
 
 // CreateRole godoc

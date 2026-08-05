@@ -188,7 +188,8 @@ func newMemorySessions() *memorySessions {
 	return &memorySessions{refresh: make(map[string]uint64), reset: make(map[string]uint64)}
 }
 
-func (m *memorySessions) AllowLogin(context.Context, string, string) error { return nil }
+func (m *memorySessions) AllowLogin(context.Context, string, string) error         { return nil }
+func (m *memorySessions) AllowTokenEndpoint(context.Context, string, string) error { return nil }
 func (m *memorySessions) CreateRefresh(_ context.Context, userID uint64) (string, time.Time, error) {
 	token := "refresh-token"
 	m.refresh[token] = userID

@@ -83,6 +83,51 @@ func TestUpdateAndDeleteAcademicYearAreSchoolScoped(t *testing.T) {
 	}
 }
 
+func TestGetPhaseOneResourcesByID(t *testing.T) {
+	schoolID := uint64(8)
+	repo := &memoryFoundation{
+		years: map[uint64]*model.AcademicYear{4: {ID: 4, SchoolID: schoolID, YearName: "2026-2027"}},
+		roles: map[uint64]*model.Role{3: {ID: 3, Name: model.RoleRegistrar, Status: model.RoleStatusActive}},
+	}
+	users := &memoryUsers{user: &model.User{ID: 9, SchoolID: &schoolID, Role: model.Role{Name: model.RoleRegistrar}}}
+	service := NewFoundationService(repo, users, &memoryAudits{}, NewAuditWriter(&memoryAudits{}), newMemorySessions())
+	actor := authz.Principal{UserID: 2, SchoolID: &schoolID, Role: model.RoleSchoolAdmin, Permissions: []string{model.PermissionManageUsers}}
+
+	if year, err := service.GetAcademicYear(context.Background(), actor, schoolID, 4); err != nil || year.ID != 4 {
+		t.Fatalf("GetAcademicYear() = %#v, %v", year, err)
+	}
+	if user, err := service.GetUser(context.Background(), actor, 9); err != nil || user.ID != 9 {
+		t.Fatalf("GetUser() = %#v, %v", user, err)
+	}
+	if role, err := service.GetRole(context.Background(), actor, 3); err != nil || role.ID != 3 {
+		t.Fatalf("GetRole() = %#v, %v", role, err)
+	}
+	if _, err := service.GetAcademicYear(context.Background(), actor, schoolID+1, 4); err != ErrInvalidScope {
+		t.Fatalf("cross-school GetAcademicYear() error = %v", err)
+	}
+}
+
+func TestPhaseOneRejectsWhitespaceOnlyIdentifiers(t *testing.T) {
+	schoolID := uint64(8)
+	repo := &memoryFoundation{schools: map[uint64]*model.School{schoolID: {ID: schoolID, Status: model.SchoolStatusActive}}}
+	service := NewFoundationService(repo, &memoryUsers{}, &memoryAudits{}, NewAuditWriter(&memoryAudits{}), newMemorySessions())
+	super := authz.Principal{UserID: 1, Role: model.RoleSuperAdmin}
+	schoolAdmin := authz.Principal{UserID: 2, SchoolID: &schoolID, Role: model.RoleSchoolAdmin, Permissions: []string{model.PermissionManageAcademicYears, model.PermissionManageUsers}}
+
+	if _, err := service.CreateSchool(context.Background(), super, CreateSchoolInput{Name: "   "}, RequestMetadata{}); err != ErrInvalidInput {
+		t.Fatalf("CreateSchool() error = %v, want ErrInvalidInput", err)
+	}
+	if _, err := service.CreateAcademicYear(context.Background(), schoolAdmin, schoolID, CreateAcademicYearInput{YearName: "   ", StartsOn: "2026-01-01", EndsOn: "2026-12-31"}, RequestMetadata{}); err != ErrInvalidInput {
+		t.Fatalf("CreateAcademicYear() error = %v, want ErrInvalidInput", err)
+	}
+	if _, err := service.CreateUser(context.Background(), schoolAdmin, CreateUserInput{Username: "   ", Password: "valid-password", RoleID: 3, SchoolID: &schoolID}, RequestMetadata{}); err != ErrInvalidInput {
+		t.Fatalf("CreateUser() error = %v, want ErrInvalidInput", err)
+	}
+	if _, err := service.CreateRole(context.Background(), super, CreateRoleInput{Name: "   "}, RequestMetadata{}); err != ErrInvalidInput {
+		t.Fatalf("CreateRole() error = %v, want ErrInvalidInput", err)
+	}
+}
+
 func TestDeleteUserDisablesAccount(t *testing.T) {
 	users := &memoryUsers{user: &model.User{ID: 9, Status: model.UserStatusActive, Role: model.Role{Name: model.RoleRegistrar}}}
 	audits := &memoryAudits{}
@@ -116,6 +161,12 @@ func TestRoleManagementProtectsSuperAdminAndAuditsAssignments(t *testing.T) {
 	if _, err := service.UpdateRole(context.Background(), actor, 1, UpdateRoleInput{Name: &name}, RequestMetadata{}); err != ErrProtectedRecord {
 		t.Fatalf("UpdateRole(SuperAdmin) error = %v, want ErrProtectedRecord", err)
 	}
+	if err := service.ArchiveRole(context.Background(), actor, 1, RequestMetadata{}); err != ErrProtectedRecord {
+		t.Fatalf("ArchiveRole(SuperAdmin) error = %v, want ErrProtectedRecord", err)
+	}
+	if _, err := service.ReplaceRolePermissions(context.Background(), actor, 1, ReplaceRolePermissionsInput{PermissionIDs: []uint64{3}}, RequestMetadata{}); err != ErrProtectedRecord {
+		t.Fatalf("ReplaceRolePermissions(SuperAdmin) error = %v, want ErrProtectedRecord", err)
+	}
 	role, err := service.CreateRole(context.Background(), actor, CreateRoleInput{Name: "Counselor", PermissionIDs: []uint64{3}}, RequestMetadata{})
 	if err != nil {
 		t.Fatalf("CreateRole() error = %v", err)
@@ -125,6 +176,19 @@ func TestRoleManagementProtectsSuperAdminAndAuditsAssignments(t *testing.T) {
 	}
 	if _, err := service.CreateRole(context.Background(), authz.Principal{}, CreateRoleInput{Name: "Forbidden"}, RequestMetadata{}); err != ErrForbidden {
 		t.Fatalf("non-SuperAdmin CreateRole() error = %v, want ErrForbidden", err)
+	}
+}
+
+func TestSchoolAdminCannotEscalateUserRole(t *testing.T) {
+	schoolID := uint64(8)
+	repo := &memoryFoundation{roles: map[uint64]*model.Role{
+		7: {ID: 7, Name: "Privileged", Status: model.RoleStatusActive, Permissions: []model.Permission{{Name: model.PermissionManageRoles}}},
+	}}
+	service := NewFoundationService(repo, &memoryUsers{}, &memoryAudits{}, NewAuditWriter(&memoryAudits{}), newMemorySessions())
+	actor := authz.Principal{UserID: 2, SchoolID: &schoolID, Role: model.RoleSchoolAdmin, Permissions: []string{model.PermissionManageUsers}}
+	_, err := service.CreateUser(context.Background(), actor, CreateUserInput{SchoolID: &schoolID, Username: "operator", Password: "valid-password", RoleID: 7}, RequestMetadata{})
+	if err != ErrForbidden {
+		t.Fatalf("CreateUser(privileged role) error = %v, want ErrForbidden", err)
 	}
 }
 

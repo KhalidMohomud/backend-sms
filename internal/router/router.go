@@ -1,6 +1,7 @@
 package router
 
 import (
+	"backendapi/internal/config"
 	"backendapi/internal/handler"
 	"backendapi/internal/middleware"
 	"backendapi/internal/model"
@@ -22,9 +23,10 @@ func New(
 	users repository.UserRepository,
 	db *gorm.DB,
 	sessions security.SessionRepository,
+	appConfig config.AppConfig,
 ) *gin.Engine {
 	r := gin.New()
-	r.Use(gin.Logger(), gin.Recovery())
+	r.Use(gin.Logger(), gin.Recovery(), middleware.LimitRequestBody(appConfig.MaxBodyBytes), middleware.CORS(appConfig.AllowedOrigins))
 	// Do not trust spoofable forwarding headers until deployment config provides
 	// an explicit reverse-proxy allowlist.
 	_ = r.SetTrustedProxies(nil)
@@ -77,12 +79,14 @@ func New(
 
 			years := secured.Group("/academic-years", middleware.RequireSchool())
 			years.GET("", foundation.ListAcademicYears)
+			years.GET("/:id", foundation.GetAcademicYear)
 			years.POST("", middleware.RequirePermission(model.PermissionManageAcademicYears), foundation.CreateAcademicYear)
 			years.PATCH("/:id", middleware.RequirePermission(model.PermissionManageAcademicYears), foundation.UpdateAcademicYear)
 			years.DELETE("/:id", middleware.RequirePermission(model.PermissionManageAcademicYears), foundation.DeleteAcademicYear)
 
 			usersRoutes := secured.Group("/users", middleware.RequirePermission(model.PermissionManageUsers))
 			usersRoutes.GET("", foundation.ListUsers)
+			usersRoutes.GET("/:id", foundation.GetUser)
 			usersRoutes.POST("", foundation.CreateUser)
 			usersRoutes.PATCH("/:id", foundation.UpdateUser)
 			usersRoutes.PATCH("/:id/status", foundation.UpdateUserStatus)
@@ -91,6 +95,7 @@ func New(
 
 			roles := secured.Group("/roles")
 			roles.GET("", foundation.ListRoles)
+			roles.GET("/:id", foundation.GetRole)
 			roles.POST("", middleware.RequirePermission(model.PermissionManageRoles), foundation.CreateRole)
 			roles.PATCH("/:id", middleware.RequirePermission(model.PermissionManageRoles), foundation.UpdateRole)
 			roles.DELETE("/:id", middleware.RequirePermission(model.PermissionManageRoles), foundation.ArchiveRole)

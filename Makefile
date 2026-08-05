@@ -1,4 +1,4 @@
-.PHONY: run build test test-race test-integration fmt swagger docker-up docker-down admin-create admin-archive-legacy-users admin-verify
+.PHONY: run build test test-race test-integration fmt swagger docker-up docker-down migrate-up migrate-down migrate-status admin-create admin-archive-legacy-users admin-verify
 
 run:
 	go run ./cmd/api
@@ -26,6 +26,15 @@ docker-up:
 
 docker-down:
 	docker compose down
+
+migrate-up:
+	docker compose run --rm --entrypoint /migrate api up
+
+migrate-down:
+	docker compose run --rm --entrypoint /migrate api down
+
+migrate-status:
+	docker compose run --rm --entrypoint /migrate api status
 
 admin-create:
 	@test -n "$(USERNAME)" || (echo "Usage: make admin-create USERNAME=superadmin" && exit 1)

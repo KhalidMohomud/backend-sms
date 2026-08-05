@@ -5,6 +5,7 @@ import (
 	"backendapi/internal/model"
 	"context"
 	"errors"
+	"strconv"
 	"strings"
 	"time"
 
@@ -38,15 +39,40 @@ func (r *userRepository) Create(ctx context.Context, user *model.User) error {
 
 func (r *userRepository) FindByUsername(ctx context.Context, username string) (*model.User, error) {
 	var user model.User
-	err := r.withAccessControl(database.FromContext(ctx, r.db)).
+	db := database.FromContext(ctx, r.db)
+	err := r.withAccessControl(db).
 		Where("LOWER(username) = ?", strings.ToLower(strings.TrimSpace(username))).First(&user).Error
-	return mapUserResult(&user, err)
+	result, err := mapUserResult(&user, err)
+	if err != nil {
+		return nil, err
+	}
+	if err := establishAuthenticationSubject(db, result.ID); err != nil {
+		return nil, err
+	}
+	return result, nil
 }
 
 func (r *userRepository) FindByID(ctx context.Context, id uint64) (*model.User, error) {
 	var user model.User
-	err := r.withAccessControl(database.FromContext(ctx, r.db)).First(&user, "usr_no = ?", id).Error
-	return mapUserResult(&user, err)
+	db := database.FromContext(ctx, r.db)
+	err := r.withAccessControl(db).First(&user, "usr_no = ?", id).Error
+	result, err := mapUserResult(&user, err)
+	if err != nil {
+		return nil, err
+	}
+	if err := establishAuthenticationSubject(db, result.ID); err != nil {
+		return nil, err
+	}
+	return result, nil
+}
+
+// establishAuthenticationSubject narrows an anonymous authentication transaction
+// to the exact user it loaded. In normal authenticated transactions auth_lookup is
+// false, so this statement has no effect on the existing principal.
+func establishAuthenticationSubject(db *gorm.DB, userID uint64) error {
+	return db.Exec(`SELECT CASE WHEN app_auth_lookup() THEN
+		set_config('app.current_user', ?, true) ELSE current_setting('app.current_user', true) END`,
+		strconv.FormatUint(userID, 10)).Error
 }
 
 func (r *userRepository) RecordFailedLogin(ctx context.Context, id uint64) error {

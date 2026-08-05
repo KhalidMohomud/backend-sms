@@ -65,4 +65,12 @@ func TestRedisSessionLifecycle(t *testing.T) {
 	if err := store.AllowLogin(ctx, "integration-ip-"+unique, "integration-user-"+unique); !errors.Is(err, ErrRateLimited) {
 		t.Fatalf("rate limit error = %v, want ErrRateLimited", err)
 	}
+	for attempt := 1; attempt <= 10; attempt++ {
+		if err := store.AllowTokenEndpoint(ctx, "reset-password", "integration-reset-ip-"+unique); err != nil {
+			t.Fatalf("password reset rate limit attempt %d: %v", attempt, err)
+		}
+	}
+	if err := store.AllowTokenEndpoint(ctx, "reset-password", "integration-reset-ip-"+unique); !errors.Is(err, ErrRateLimited) {
+		t.Fatalf("password reset rate limit error = %v, want ErrRateLimited", err)
+	}
 }

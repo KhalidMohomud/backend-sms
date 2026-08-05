@@ -101,6 +101,7 @@ func New(ctx context.Context, cfg config.Config) (*App, error) {
 		userRepository,
 		db,
 		sessionStore,
+		cfg.App,
 	)
 
 	return &App{
@@ -108,6 +109,9 @@ func New(ctx context.Context, cfg config.Config) (*App, error) {
 			Addr:              ":" + cfg.App.Port,
 			Handler:           engine,
 			ReadHeaderTimeout: 5 * time.Second,
+			ReadTimeout:       15 * time.Second,
+			WriteTimeout:      30 * time.Second,
+			IdleTimeout:       60 * time.Second,
 		},
 		db:    db,
 		redis: redisClient,

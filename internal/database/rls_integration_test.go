@@ -152,10 +152,62 @@ func TestRLSIsolatesSchoolsAndAllowsSuperAdmin(t *testing.T) {
 		t.Fatal(err)
 	}
 	loginUser := model.User{SchoolID: &schoolA.ID, Username: fmt.Sprintf("rls-login-%d", suffix), PasswordHash: "test-only", RoleID: registrar.ID, Status: model.UserStatusActive}
+	otherUser := model.User{SchoolID: &schoolB.ID, Username: fmt.Sprintf("rls-other-%d", suffix), PasswordHash: "test-only", RoleID: registrar.ID, Status: model.UserStatusActive}
 	if err := db.Create(&loginUser).Error; err != nil {
 		t.Fatal(err)
 	}
-	defer db.Delete(&model.User{}, loginUser.ID)
+	if err := db.Create(&otherUser).Error; err != nil {
+		t.Fatal(err)
+	}
+	defer db.Delete(&model.User{}, []uint64{loginUser.ID, otherUser.ID})
+	auditA := model.AuditLog{UserID: &loginUser.ID, SchoolID: &schoolA.ID, Action: "RLS_TEST", ResourceType: "users", RecordID: &loginUser.ID}
+	auditB := model.AuditLog{UserID: &otherUser.ID, SchoolID: &schoolB.ID, Action: "RLS_TEST", ResourceType: "users", RecordID: &otherUser.ID}
+	if err := db.Create(&auditA).Error; err != nil {
+		t.Fatal(err)
+	}
+	if err := db.Create(&auditB).Error; err != nil {
+		t.Fatal(err)
+	}
+	defer func() {
+		if err := db.Exec("ALTER TABLE audit_logs DISABLE TRIGGER audit_logs_no_update_or_delete").Error; err != nil {
+			t.Errorf("disable audit cleanup trigger: %v", err)
+			return
+		}
+		if err := db.Delete(&model.AuditLog{}, []uint64{auditA.ID, auditB.ID}).Error; err != nil {
+			t.Errorf("delete RLS test audits: %v", err)
+		}
+		if err := db.Exec("ALTER TABLE audit_logs ENABLE TRIGGER audit_logs_no_update_or_delete").Error; err != nil {
+			t.Errorf("enable audit cleanup trigger: %v", err)
+		}
+	}()
+
+	ctxTenantData, txTenantData, err := BeginRequest(context.Background(), db, SecurityScope{Principal: principalA})
+	if err != nil {
+		t.Fatal(err)
+	}
+	var visibleUsers []model.User
+	if err := FromContext(ctxTenantData, db).Where("usr_no IN ?", []uint64{loginUser.ID, otherUser.ID}).Find(&visibleUsers).Error; err != nil {
+		t.Fatal(err)
+	}
+	if len(visibleUsers) != 1 || visibleUsers[0].ID != loginUser.ID {
+		t.Fatalf("school A saw users %#v; expected only user %d", visibleUsers, loginUser.ID)
+	}
+	var visibleAudits []model.AuditLog
+	if err := FromContext(ctxTenantData, db).Where("log_no IN ?", []uint64{auditA.ID, auditB.ID}).Find(&visibleAudits).Error; err != nil {
+		t.Fatal(err)
+	}
+	if len(visibleAudits) != 1 || visibleAudits[0].ID != auditA.ID {
+		t.Fatalf("school A saw audit logs %#v; expected only audit %d", visibleAudits, auditA.ID)
+	}
+	result := FromContext(ctxTenantData, db).Model(&model.User{}).Where("usr_no = ?", otherUser.ID).Update("status", model.UserStatusDisabled)
+	if result.Error != nil {
+		t.Fatal(result.Error)
+	}
+	if result.RowsAffected != 0 {
+		t.Fatal("school A updated school B user")
+	}
+	txTenantData.Rollback()
+
 	ctxLogin, txLogin, err := BeginRequest(context.Background(), db, SecurityScope{AuthLookup: true})
 	if err != nil {
 		t.Fatal(err)
@@ -166,6 +218,26 @@ func TestRLSIsolatesSchoolsAndAllowsSuperAdmin(t *testing.T) {
 	}
 	if loaded.School == nil || loaded.School.ID != schoolA.ID {
 		t.Fatalf("authentication lookup did not load school context: %#v", loaded.School)
+	}
+	var authenticationAudits []model.AuditLog
+	if err := FromContext(ctxLogin, db).Where("log_no IN ?", []uint64{auditA.ID, auditB.ID}).Find(&authenticationAudits).Error; err != nil {
+		t.Fatal(err)
+	}
+	if len(authenticationAudits) != 0 {
+		t.Fatalf("authentication context read audit logs: %#v", authenticationAudits)
+	}
+	unauthorizedUpdate := FromContext(ctxLogin, db).Model(&model.User{}).Where("usr_no = ?", otherUser.ID).Update("status", model.UserStatusDisabled)
+	if unauthorizedUpdate.Error != nil {
+		t.Fatal(unauthorizedUpdate.Error)
+	}
+	if unauthorizedUpdate.RowsAffected != 0 {
+		t.Fatal("anonymous authentication context updated a user")
+	}
+	if err := FromContext(ctxLogin, db).Exec("SELECT set_config('app.current_user', ?, true)", fmt.Sprint(loginUser.ID)).Error; err != nil {
+		t.Fatal(err)
+	}
+	if err := FromContext(ctxLogin, db).Model(&model.User{}).Where("usr_no = ?", loginUser.ID).Update("username", "auth-escalation-attempt").Error; err == nil {
+		t.Fatal("authentication context changed user identity")
 	}
 	txLogin.Rollback()
 

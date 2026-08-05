@@ -60,11 +60,13 @@ Each request executes as the `kobciye_runtime` database role. Middleware opens o
 - Redis stores rotating seven-day refresh sessions. A refresh token is one-time-use and rotation invalidates the previous token.
 - Logout denies the current access-token ID. Logout-all revokes all refresh sessions and rejects access tokens issued before the revocation time.
 - Redis limits login traffic by IP address and normalized username in addition to the five-attempt account lock.
+- Redis also rate-limits refresh and password-reset requests by IP address.
 - Users can change their password. Administrators can issue a one-time 15-minute password-reset token without learning or setting the user's password.
 - Authenticated requests reload account status and permissions from PostgreSQL so disabling or changing an account takes effect immediately.
 - Accounts belonging to an inactive school are rejected at login and on every authenticated request, including requests using an older JWT.
 - Login errors do not disclose whether a username exists.
 - Production refuses the development JWT secret.
+- Request bodies are limited to 1 MiB by default, and browser origins must be explicitly allowlisted.
 
 ## SuperAdmin
 
@@ -112,6 +114,8 @@ migrations/000002_seed_access_control.up.sql
 migrations/000002_seed_access_control.down.sql
 migrations/000003_phase1_security.up.sql
 migrations/000003_phase1_security.down.sql
+migrations/000005_phase1_security_hardening.up.sql
+migrations/000005_phase1_security_hardening.down.sql
 ```
 
 SQL migrations are the production source of truth. `AUTO_MIGRATE=true` is intended only for local development.
@@ -136,6 +140,9 @@ make test-integration # Run live PostgreSQL RLS and Redis session tests in Docke
 make swagger      # Regenerate API documentation
 make docker-up    # Run API, PostgreSQL and Redis
 make docker-down  # Stop the development stack
+make migrate-up   # Apply pending SQL migrations in production
+make migrate-down # Revert the latest applied SQL migration
+make migrate-status # Show applied and pending SQL migrations
 make admin-create USERNAME=superadmin  # Create the first SuperAdmin interactively
 make admin-verify   # Verify tables, RBAC assignments, and audit trigger
 ```
@@ -150,6 +157,8 @@ Swagger UI is available at `http://localhost:8081/swagger/index.html` while Dock
 | `APP_PORT` | Internal API port |
 | `API_HOST_PORT` | Docker host port |
 | `AUTO_MIGRATE` | Local GORM migration switch; disable in production |
+| `CORS_ALLOWED_ORIGINS` | Comma-separated trusted Next.js/browser origins |
+| `MAX_BODY_BYTES` | Maximum HTTP request body size; default 1 MiB |
 | `POSTGRES_HOST`, `POSTGRES_PORT` | PostgreSQL address |
 | `POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_DB` | PostgreSQL credentials/database |
 | `POSTGRES_SSLMODE` | Use an SSL mode appropriate for deployment |
@@ -175,13 +184,16 @@ Secrets must be supplied by the deployment environment and must never be committ
 | `GET`, `PATCH`, `DELETE` | `/api/v1/schools/{id}` | `manage_schools` (SuperAdmin) |
 | `GET` | `/api/v1/academic-years` | Authenticated, school scoped |
 | `POST` | `/api/v1/academic-years` | `manage_academic_years`, school scoped |
+| `GET` | `/api/v1/academic-years/{id}` | Authenticated, school scoped |
 | `PATCH`, `DELETE` | `/api/v1/academic-years/{id}` | `manage_academic_years`, school scoped |
 | `GET`, `POST` | `/api/v1/users` | `manage_users` |
+| `GET` | `/api/v1/users/{id}` | `manage_users`, school scoped |
 | `PATCH` | `/api/v1/users/{id}` | `manage_users`; username, staff link, or role |
 | `PATCH` | `/api/v1/users/{id}/status` | `manage_users`; disable or unlock |
 | `DELETE` | `/api/v1/users/{id}` | `manage_users`; safe account deletion |
 | `POST` | `/api/v1/users/{id}/password-reset-token` | `manage_users`; one-time reset token |
 | `GET` | `/api/v1/roles` | `manage_roles` or `manage_users` |
+| `GET` | `/api/v1/roles/{id}` | `manage_roles` or `manage_users` |
 | `POST` | `/api/v1/roles` | SuperAdmin with `manage_roles` |
 | `PATCH`, `DELETE` | `/api/v1/roles/{id}` | SuperAdmin; update or deactivate custom role |
 | `PUT` | `/api/v1/roles/{id}/permissions` | SuperAdmin; replace permission assignment |
@@ -220,11 +232,11 @@ curl http://localhost:8081/api/v1/schools \
 - [x] PostgreSQL-native schema
 - [x] GORM models
 - [x] Access-control seed
-- [x] PostgreSQL RLS policies and live cross-school isolation test
+- [x] PostgreSQL RLS policies and live cross-school isolation tests for schools, academic years, users, and audit logs
 - [x] Request-scoped transaction context without connection-pool leakage
 - [x] JWT authentication
 - [x] Five-attempt account lock test
-- [x] Redis login/IP rate limiting
+- [x] Redis login, refresh, and password-reset IP rate limiting
 - [x] Rotating refresh tokens, logout, and logout-all
 - [x] Change-password and one-time password reset
 - [x] School middleware and tests
@@ -247,7 +259,8 @@ curl http://localhost:8081/api/v1/schools \
 Final runtime result:
 
 ```text
-Foundation verifier: 7 tables, 5+ roles, 5 permissions, audit trigger active, RLS active
+Phase 1 and Phase 2 verifier: 19 tables, 5+ roles, 7 permissions, audit trigger active, RLS active
+Production migrations: 000001 through 000005 applied successfully to a clean PostgreSQL database
 GET /health: 200 OK
 GET /api/v1/schools without JWT: 401 Unauthorized
 GET /swagger/index.html: 200 OK

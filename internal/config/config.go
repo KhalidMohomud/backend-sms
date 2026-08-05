@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"strconv"
+	"strings"
 	"time"
 )
 
@@ -16,9 +17,11 @@ type Config struct {
 }
 
 type AppConfig struct {
-	Environment string
-	Port        string
-	AutoMigrate bool
+	Environment    string
+	Port           string
+	AutoMigrate    bool
+	AllowedOrigins []string
+	MaxBodyBytes   int64
 }
 
 type PostgresConfig struct {
@@ -57,12 +60,18 @@ func Load() (Config, error) {
 	if err != nil {
 		return Config{}, fmt.Errorf("parse REDIS_DB: %w", err)
 	}
+	maxBodyBytes, err := strconv.ParseInt(getEnv("MAX_BODY_BYTES", "1048576"), 10, 64)
+	if err != nil || maxBodyBytes < 1024 {
+		return Config{}, fmt.Errorf("MAX_BODY_BYTES must be an integer of at least 1024")
+	}
 
 	cfg := Config{
 		App: AppConfig{
-			Environment: getEnv("APP_ENV", "development"),
-			Port:        getEnv("APP_PORT", "8080"),
-			AutoMigrate: getEnv("AUTO_MIGRATE", "true") == "true",
+			Environment:    getEnv("APP_ENV", "development"),
+			Port:           getEnv("APP_PORT", "8080"),
+			AutoMigrate:    getEnv("AUTO_MIGRATE", "true") == "true",
+			AllowedOrigins: splitCSV(getEnv("CORS_ALLOWED_ORIGINS", "http://localhost:3000,http://localhost:8081")),
+			MaxBodyBytes:   maxBodyBytes,
 		},
 		Postgres: PostgresConfig{
 			Host:     getEnv("POSTGRES_HOST", "localhost"),
@@ -99,4 +108,15 @@ func getEnv(key, fallback string) string {
 		return value
 	}
 	return fallback
+}
+
+func splitCSV(value string) []string {
+	parts := strings.Split(value, ",")
+	result := make([]string, 0, len(parts))
+	for _, part := range parts {
+		if part = strings.TrimSpace(part); part != "" {
+			result = append(result, part)
+		}
+	}
+	return result
 }
