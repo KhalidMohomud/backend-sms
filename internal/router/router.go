@@ -48,6 +48,7 @@ func New(
 		{
 			schools := secured.Group("/schools", middleware.RequirePermission(model.PermissionManageSchools))
 			schools.GET("", foundation.ListSchools)
+			schools.GET("/:id", foundation.GetSchool)
 			schools.POST("", foundation.CreateSchool)
 			schools.PATCH("/:id", foundation.UpdateSchool)
 			schools.DELETE("/:id", foundation.ArchiveSchool)

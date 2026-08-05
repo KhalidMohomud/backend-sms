@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 )
 
 const maximumFailedLogins = 5
@@ -30,7 +31,9 @@ type userRepository struct{ db *gorm.DB }
 func NewUserRepository(db *gorm.DB) UserRepository { return &userRepository{db: db} }
 
 func (r *userRepository) Create(ctx context.Context, user *model.User) error {
-	return database.FromContext(ctx, r.db).Create(user).Error
+	// Roles and schools are existing access-control records. Never let GORM try
+	// to insert or update them while creating a user.
+	return database.FromContext(ctx, r.db).Omit(clause.Associations).Create(user).Error
 }
 
 func (r *userRepository) FindByUsername(ctx context.Context, username string) (*model.User, error) {

@@ -34,6 +34,24 @@ func TestUpdateAndArchiveSchool(t *testing.T) {
 	}
 }
 
+func TestGetSchoolRequiresSuperAdmin(t *testing.T) {
+	repo := &memoryFoundation{schools: map[uint64]*model.School{
+		16: {ID: 16, Name: "Xuseen School", Status: model.SchoolStatusActive},
+	}}
+	service := NewFoundationService(repo, &memoryUsers{}, &memoryAudits{}, NewAuditWriter(&memoryAudits{}), newMemorySessions())
+
+	school, err := service.GetSchool(context.Background(), authz.Principal{Role: model.RoleSuperAdmin}, 16)
+	if err != nil || school.ID != 16 {
+		t.Fatalf("GetSchool() = %#v, %v", school, err)
+	}
+	if _, err := service.GetSchool(context.Background(), authz.Principal{Role: model.RoleSchoolAdmin}, 16); err != ErrForbidden {
+		t.Fatalf("school admin GetSchool() error = %v, want ErrForbidden", err)
+	}
+	if _, err := service.GetSchool(context.Background(), authz.Principal{Role: model.RoleSuperAdmin}, 99); err != repository.ErrNotFound {
+		t.Fatalf("missing GetSchool() error = %v, want ErrNotFound", err)
+	}
+}
+
 func TestUpdateAndDeleteAcademicYearAreSchoolScoped(t *testing.T) {
 	schoolID := uint64(8)
 	start := time.Date(2026, 9, 1, 0, 0, 0, 0, time.UTC)

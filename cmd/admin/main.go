@@ -17,6 +17,7 @@ import (
 
 	"golang.org/x/term"
 	"gorm.io/gorm"
+	"gorm.io/gorm/logger"
 )
 
 func main() {
@@ -25,7 +26,7 @@ func main() {
 	}
 }
 
-// closePostgres closes the underlying SQL database connection for the given gorm.DB instance. It logs any error encountered during the close operation.
+// run dispatches the requested operator-only administrative command.
 func run() error {
 	if len(os.Args) < 2 {
 		return usageError()
@@ -55,7 +56,7 @@ func run() error {
 	}
 }
 
-// ApplyFoundationRLS applies row-level security policies to the foundation tables in the database. It creates functions to retrieve the current school and user from the session, and grants appropriate permissions to the kobciye_runtime role.
+// createSuperAdmin creates the first platform administrator in one transaction.
 func createSuperAdmin(ctx context.Context, cfg config.Config, db *gorm.DB, args []string) error {
 	flags := flag.NewFlagSet("create-superadmin", flag.ContinueOnError)
 	username := flags.String("username", "", "SuperAdmin username")
@@ -109,7 +110,7 @@ func createSuperAdmin(ctx context.Context, cfg config.Config, db *gorm.DB, args 
 	return nil
 }
 
-// ApplyFoundationRLS applies row-level security policies to the foundation tables in the database. It creates functions to retrieve the current school and user from the session, and grants appropriate permissions to the kobciye_runtime role.
+// archiveLegacyUsers preserves the original scaffold users before schema replacement.
 func archiveLegacyUsers(ctx context.Context, db *gorm.DB, args []string) error {
 	flags := flag.NewFlagSet("archive-legacy-users", flag.ContinueOnError)
 	confirmed := flags.Bool("confirm-archive", false, "confirm archive and table replacement")
@@ -157,7 +158,14 @@ func verifyFoundation(ctx context.Context, db *gorm.DB) error {
 	if err != nil || triggerCount != 1 {
 		return fmt.Errorf("append-only audit trigger is not installed")
 	}
-	fmt.Printf("Foundation verified: %d tables, %d roles, %d permissions, audit trigger active.\n", len(requiredTables), len(roles), len(permissions))
+	var rlsTableCount int64
+	err = db.WithContext(ctx).Raw(`SELECT COUNT(*) FROM pg_class
+		WHERE relname IN ('schools','academic_years','roles','permissions','role_permissions','users','audit_logs')
+		AND relrowsecurity`).Scan(&rlsTableCount).Error
+	if err != nil || rlsTableCount != int64(len(requiredTables)) {
+		return fmt.Errorf("RLS is not enabled on all foundation tables: enabled=%d", rlsTableCount)
+	}
+	fmt.Printf("Foundation verified: %d tables, %d roles, %d permissions, audit trigger active, RLS active.\n", len(requiredTables), len(roles), len(permissions))
 	return nil
 }
 
@@ -171,6 +179,8 @@ func openDatabase(cfg config.Config) (*gorm.DB, func(), error) {
 	if err != nil {
 		return nil, nil, fmt.Errorf("get postgres connection: %w", err)
 	}
+	// Operator commands should print concise outcomes, not every migration query.
+	db.Logger = logger.Default.LogMode(logger.Silent)
 	return db, func() { _ = sqlDB.Close() }, nil
 }
 

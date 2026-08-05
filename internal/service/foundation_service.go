@@ -136,6 +136,13 @@ func (s *FoundationService) CreateSchool(ctx context.Context, actor authz.Princi
 	return school, nil
 }
 
+func (s *FoundationService) GetSchool(ctx context.Context, actor authz.Principal, schoolID uint64) (*model.School, error) {
+	if !actor.IsSuperAdmin() || !actor.HasPermission(model.PermissionManageSchools) {
+		return nil, ErrForbidden
+	}
+	return s.foundation.FindSchoolByID(ctx, schoolID)
+}
+
 func (s *FoundationService) ListSchools(ctx context.Context, actor authz.Principal) ([]model.School, error) {
 	if !actor.IsSuperAdmin() || !actor.HasPermission(model.PermissionManageSchools) {
 		return nil, ErrForbidden

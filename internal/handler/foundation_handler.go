@@ -63,6 +63,32 @@ func (h *FoundationHandler) ListSchools(c *gin.Context) {
 	c.JSON(http.StatusOK, schools)
 }
 
+// GetSchool godoc
+// @Summary Get a school by ID
+// @Tags foundation
+// @Produce json
+// @Security BearerAuth
+// @Param id path int true "School ID"
+// @Success 200 {object} model.School
+// @Failure 400 {object} errorResponse
+// @Failure 401 {object} errorResponse
+// @Failure 403 {object} errorResponse
+// @Failure 404 {object} errorResponse
+// @Router /schools/{id} [get]
+func (h *FoundationHandler) GetSchool(c *gin.Context) {
+	schoolID, ok := positivePathID(c, "id", "school")
+	if !ok {
+		return
+	}
+	principal, _ := middleware.Principal(c)
+	school, err := h.service.GetSchool(c.Request.Context(), principal, schoolID)
+	if err != nil {
+		writeServiceError(c, err)
+		return
+	}
+	c.JSON(http.StatusOK, school)
+}
+
 // UpdateSchool godoc
 // @Summary Update a school
 // @Description Partially updates a school. Setting status to inactive immediately blocks its school accounts.
