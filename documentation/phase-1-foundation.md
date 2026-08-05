@@ -246,7 +246,7 @@ curl http://localhost:8081/api/v1/schools \
 Final runtime result:
 
 ```text
-Foundation verifier: 7 tables, 5 roles, 5 permissions, audit trigger active
+Foundation verifier: 7 tables, 5+ roles, 5 permissions, audit trigger active, RLS active
 GET /health: 200 OK
 GET /api/v1/schools without JWT: 401 Unauthorized
 GET /swagger/index.html: 200 OK

@@ -95,7 +95,7 @@ func TestRefreshRotatesTokenAndPasswordResetIsOneTime(t *testing.T) {
 	service := NewAuthService(users, manager, NewAuditWriter(audits), sessions)
 
 	refresh, _, _ := sessions.CreateRefresh(context.Background(), users.user.ID)
-	result, err := service.Refresh(context.Background(), RefreshInput{RefreshToken: refresh})
+	result, err := service.Refresh(context.Background(), RefreshInput{RefreshToken: refresh}, RequestMetadata{})
 	if err != nil || result.RefreshToken == refresh {
 		t.Fatalf("Refresh() = %#v, %v", result, err)
 	}

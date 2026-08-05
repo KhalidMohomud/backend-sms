@@ -27,6 +27,9 @@ func TestRLSIsolatesSchoolsAndAllowsSuperAdmin(t *testing.T) {
 	if err := ApplyFoundationRLS(db); err != nil {
 		t.Fatal(err)
 	}
+	if err := ConfigureFoundationModels(db); err != nil {
+		t.Fatal(err)
+	}
 
 	suffix := time.Now().UTC().UnixNano()
 	schoolA := model.School{Name: fmt.Sprintf("RLS A %d", suffix), Status: model.SchoolStatusActive}
@@ -61,7 +64,36 @@ func TestRLSIsolatesSchoolsAndAllowsSuperAdmin(t *testing.T) {
 	if len(visible) != 1 || visible[0].ID != yearA.ID {
 		t.Fatalf("school A saw %#v; expected only year %d", visible, yearA.ID)
 	}
+	var visibleSchools []model.School
+	if err := FromContext(ctxA, db).Where("sch_no IN ?", []uint64{schoolA.ID, schoolB.ID}).Find(&visibleSchools).Error; err != nil {
+		t.Fatal(err)
+	}
+	if len(visibleSchools) != 1 || visibleSchools[0].ID != schoolA.ID {
+		t.Fatalf("school A saw schools %#v; expected only school %d", visibleSchools, schoolA.ID)
+	}
 	txA.Rollback()
+
+	var registrar model.Role
+	if err := db.Where("role_name = ?", model.RoleRegistrar).First(&registrar).Error; err != nil {
+		t.Fatal(err)
+	}
+	loginUser := model.User{SchoolID: &schoolA.ID, Username: fmt.Sprintf("rls-login-%d", suffix), PasswordHash: "test-only", RoleID: registrar.ID, Status: model.UserStatusActive}
+	if err := db.Create(&loginUser).Error; err != nil {
+		t.Fatal(err)
+	}
+	defer db.Delete(&model.User{}, loginUser.ID)
+	ctxLogin, txLogin, err := BeginRequest(context.Background(), db, SecurityScope{AuthLookup: true})
+	if err != nil {
+		t.Fatal(err)
+	}
+	var loaded model.User
+	if err := FromContext(ctxLogin, db).Preload("School").Preload("Role.Permissions").First(&loaded, "usr_no = ?", loginUser.ID).Error; err != nil {
+		t.Fatal(err)
+	}
+	if loaded.School == nil || loaded.School.ID != schoolA.ID {
+		t.Fatalf("authentication lookup did not load school context: %#v", loaded.School)
+	}
+	txLogin.Rollback()
 
 	ctxWrite, txWrite, err := BeginRequest(context.Background(), db, SecurityScope{Principal: principalA})
 	if err != nil {

@@ -113,7 +113,7 @@ func (s *AuthService) Login(ctx context.Context, input LoginInput, request Reque
 	return s.issueTokens(ctx, user)
 }
 
-func (s *AuthService) Refresh(ctx context.Context, input RefreshInput) (*AuthResult, error) {
+func (s *AuthService) Refresh(ctx context.Context, input RefreshInput, request RequestMetadata) (*AuthResult, error) {
 	userID, newRefresh, refreshExpiresAt, err := s.sessions.RotateRefresh(ctx, input.RefreshToken)
 	if err != nil {
 		return nil, err
@@ -126,11 +126,16 @@ func (s *AuthService) Refresh(ctx context.Context, input RefreshInput) (*AuthRes
 	result, err := s.issueAccessToken(user, newRefresh, refreshExpiresAt)
 	if err != nil {
 		_ = s.sessions.RevokeRefresh(ctx, newRefresh)
+		return nil, err
 	}
-	return result, err
+	if err := s.audit.Write(ctx, &user.ID, user.SchoolID, "TOKEN_REFRESH", "users", &user.ID, request, nil); err != nil {
+		_ = s.sessions.RevokeRefresh(ctx, newRefresh)
+		return nil, err
+	}
+	return result, nil
 }
 
-func (s *AuthService) Logout(ctx context.Context, accessToken string, input LogoutInput) error {
+func (s *AuthService) Logout(ctx context.Context, accessToken string, input LogoutInput, request RequestMetadata) error {
 	identity, err := s.jwt.ParseIdentity(accessToken)
 	if err != nil {
 		return err
@@ -138,11 +143,17 @@ func (s *AuthService) Logout(ctx context.Context, accessToken string, input Logo
 	if err := s.sessions.DenyAccess(ctx, identity.JTI, identity.ExpiresAt); err != nil {
 		return err
 	}
-	return s.sessions.RevokeRefresh(ctx, input.RefreshToken)
+	if err := s.sessions.RevokeRefresh(ctx, input.RefreshToken); err != nil {
+		return err
+	}
+	return s.audit.Write(ctx, &identity.Principal.UserID, identity.Principal.SchoolID, "LOGOUT", "users", &identity.Principal.UserID, request, nil)
 }
 
-func (s *AuthService) LogoutAll(ctx context.Context, actor authz.Principal) error {
-	return s.sessions.RevokeAll(ctx, actor.UserID)
+func (s *AuthService) LogoutAll(ctx context.Context, actor authz.Principal, request RequestMetadata) error {
+	if err := s.sessions.RevokeAll(ctx, actor.UserID); err != nil {
+		return err
+	}
+	return s.audit.Write(ctx, &actor.UserID, actor.SchoolID, "LOGOUT_ALL", "users", &actor.UserID, request, nil)
 }
 
 func (s *AuthService) ChangePassword(ctx context.Context, actor authz.Principal, input ChangePasswordInput, request RequestMetadata) error {

@@ -153,7 +153,14 @@ func verifyFoundation(ctx context.Context, db *gorm.DB) error {
 	if err != nil || triggerCount != 1 {
 		return fmt.Errorf("append-only audit trigger is not installed")
 	}
-	fmt.Printf("Foundation verified: %d tables, %d roles, %d permissions, audit trigger active.\n", len(requiredTables), len(roles), len(permissions))
+	var rlsTableCount int64
+	err = db.WithContext(ctx).Raw(`SELECT COUNT(*) FROM pg_class
+		WHERE relname IN ('schools','academic_years','roles','permissions','role_permissions','users','audit_logs')
+		AND relrowsecurity`).Scan(&rlsTableCount).Error
+	if err != nil || rlsTableCount != int64(len(requiredTables)) {
+		return fmt.Errorf("RLS is not enabled on all foundation tables: enabled=%d", rlsTableCount)
+	}
+	fmt.Printf("Foundation verified: %d tables, %d roles, %d permissions, audit trigger active, RLS active.\n", len(requiredTables), len(roles), len(permissions))
 	return nil
 }
 

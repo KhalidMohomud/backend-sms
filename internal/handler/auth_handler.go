@@ -63,7 +63,7 @@ func (h *AuthHandler) Refresh(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, errorResponse{Error: "invalid refresh request"})
 		return
 	}
-	result, err := h.service.Refresh(c.Request.Context(), input)
+	result, err := h.service.Refresh(c.Request.Context(), input, requestMetadata(c))
 	if err != nil {
 		if errors.Is(err, security.ErrInvalidToken) || errors.Is(err, service.ErrAccountUnavailable) {
 			c.JSON(http.StatusUnauthorized, errorResponse{Error: "invalid or expired refresh token"})
@@ -89,7 +89,7 @@ func (h *AuthHandler) Logout(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, errorResponse{Error: "invalid logout request"})
 		return
 	}
-	if err := h.service.Logout(c.Request.Context(), bearerToken(c), input); err != nil {
+	if err := h.service.Logout(c.Request.Context(), bearerToken(c), input, requestMetadata(c)); err != nil {
 		c.JSON(http.StatusInternalServerError, errorResponse{Error: "could not log out"})
 		return
 	}
@@ -104,7 +104,7 @@ func (h *AuthHandler) Logout(c *gin.Context) {
 // @Router /auth/logout-all [post]
 func (h *AuthHandler) LogoutAll(c *gin.Context) {
 	principal, _ := middleware.Principal(c)
-	if err := h.service.LogoutAll(c.Request.Context(), principal); err != nil {
+	if err := h.service.LogoutAll(c.Request.Context(), principal, requestMetadata(c)); err != nil {
 		c.JSON(http.StatusInternalServerError, errorResponse{Error: "could not revoke sessions"})
 		return
 	}
