@@ -41,6 +41,18 @@ services:
       timeout: 3s
       retries: 10
 
+  integration-test:
+    profiles: ["test"]
+    build:
+      context: .
+      target: build
+    entrypoint: ["go", "test", "-tags=integration", "./internal/database", "-run", "TestRLS", "-v"]
+    environment:
+      TEST_DATABASE_DSN: "host=postgres port=5432 user=${POSTGRES_USER:-kobciye} password=${POSTGRES_PASSWORD:-kobciye} dbname=${POSTGRES_DB:-kobciye} sslmode=disable TimeZone=UTC"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
 volumes:
   postgres_data:
   redis_data:

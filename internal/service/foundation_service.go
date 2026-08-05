@@ -419,6 +419,7 @@ func (s *FoundationService) CreatePasswordResetToken(ctx context.Context, actor 
 		return nil, fmt.Errorf("create password reset token: %w", err)
 	}
 	if err := s.audit.Write(ctx, &actor.UserID, target.SchoolID, "PASSWORD_RESET_ISSUED", "users", &target.ID, request, nil); err != nil {
+		_, _ = s.sessions.ConsumePasswordReset(ctx, token)
 		return nil, err
 	}
 	return &PasswordResetTokenResult{ResetToken: token, ExpiresAt: expiresAt}, nil
@@ -535,10 +536,16 @@ func (s *FoundationService) UpdateRole(ctx context.Context, actor authz.Principa
 }
 
 func (s *FoundationService) ArchiveRole(ctx context.Context, actor authz.Principal, roleID uint64, request RequestMetadata) error {
-	status := model.RoleStatusInactive
-	role, err := s.UpdateRole(ctx, actor, roleID, UpdateRoleInput{Status: &status}, request)
+	if !canManageRoles(actor) {
+		return ErrForbidden
+	}
+	role, err := s.mutableRole(ctx, roleID)
 	if err != nil {
 		return err
+	}
+	role.Status = model.RoleStatusInactive
+	if err := s.foundation.UpdateRole(ctx, role); err != nil {
+		return fmt.Errorf("deactivate role: %w", err)
 	}
 	return s.audit.Write(ctx, &actor.UserID, nil, "DELETE", "roles", &role.ID, request, map[string]any{"soft_delete": true})
 }
