@@ -46,7 +46,7 @@ services:
     build:
       context: .
       target: build
-    entrypoint: ["go", "test", "-tags=integration", "./internal/database", "./internal/security", "-v"]
+    entrypoint: ["go", "test", "-p", "1", "-tags=integration", "./internal/database", "./internal/repository", "./internal/security", "-v"]
     environment:
       TEST_DATABASE_DSN: "host=postgres port=5432 user=${POSTGRES_USER:-kobciye} password=${POSTGRES_PASSWORD:-kobciye} dbname=${POSTGRES_DB:-kobciye} sslmode=disable TimeZone=UTC"
       TEST_REDIS_ADDR: "redis:6379"

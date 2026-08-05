@@ -63,6 +63,55 @@ definitions:
       user_id:
         type: integer
     type: object
+  model.Class:
+    properties:
+      created_at:
+        type: string
+      id:
+        type: integer
+      level:
+        $ref: '#/definitions/model.Level'
+      level_id:
+        type: integer
+      name:
+        type: string
+      school_id:
+        type: integer
+      status:
+        $ref: '#/definitions/model.RecordStatus'
+      updated_at:
+        type: string
+    type: object
+  model.Level:
+    properties:
+      created_at:
+        type: string
+      id:
+        type: integer
+      name:
+        type: string
+      price:
+        type: number
+      school_id:
+        type: integer
+      status:
+        $ref: '#/definitions/model.RecordStatus'
+      updated_at:
+        type: string
+    type: object
+  model.LookupItem:
+    properties:
+      created_at:
+        type: string
+      id:
+        type: integer
+      name:
+        type: string
+      status:
+        $ref: '#/definitions/model.RecordStatus'
+      updated_at:
+        type: string
+    type: object
   model.Permission:
     properties:
       created_at:
@@ -76,6 +125,14 @@ definitions:
       updated_at:
         type: string
     type: object
+  model.RecordStatus:
+    enum:
+    - active
+    - inactive
+    type: string
+    x-enum-varnames:
+    - RecordStatusActive
+    - RecordStatusInactive
   model.Role:
     properties:
       created_at:
@@ -217,6 +274,59 @@ definitions:
     - starts_on
     - year_name
     type: object
+  service.CreateClassInput:
+    properties:
+      level_id:
+        example: 1
+        minimum: 1
+        type: integer
+      name:
+        example: Form 1-A
+        maxLength: 40
+        minLength: 2
+        type: string
+      status:
+        allOf:
+        - $ref: '#/definitions/model.RecordStatus'
+        enum:
+        - active
+        - inactive
+        example: active
+    required:
+    - level_id
+    - name
+    type: object
+  service.CreateLevelInput:
+    properties:
+      name:
+        example: Form 1
+        maxLength: 40
+        minLength: 2
+        type: string
+      price:
+        example: 25
+        minimum: 0
+        type: number
+      status:
+        allOf:
+        - $ref: '#/definitions/model.RecordStatus'
+        enum:
+        - active
+        - inactive
+        example: active
+    required:
+    - name
+    type: object
+  service.CreateLookupInput:
+    properties:
+      name:
+        example: Mathematics
+        maxLength: 60
+        minLength: 2
+        type: string
+    required:
+    - name
+    type: object
   service.CreateRoleInput:
     properties:
       description:
@@ -357,6 +467,59 @@ definitions:
         example: 2026-2027
         maxLength: 20
         type: string
+    type: object
+  service.UpdateClassInput:
+    properties:
+      level_id:
+        example: 1
+        minimum: 1
+        type: integer
+      name:
+        example: Form 1-A
+        maxLength: 40
+        minLength: 2
+        type: string
+      status:
+        allOf:
+        - $ref: '#/definitions/model.RecordStatus'
+        enum:
+        - active
+        - inactive
+        example: active
+    type: object
+  service.UpdateLevelInput:
+    properties:
+      name:
+        example: Form 1
+        maxLength: 40
+        minLength: 2
+        type: string
+      price:
+        example: 25
+        minimum: 0
+        type: number
+      status:
+        allOf:
+        - $ref: '#/definitions/model.RecordStatus'
+        enum:
+        - active
+        - inactive
+        example: active
+    type: object
+  service.UpdateLookupInput:
+    properties:
+      name:
+        example: Mathematics
+        maxLength: 60
+        minLength: 2
+        type: string
+      status:
+        allOf:
+        - $ref: '#/definitions/model.RecordStatus'
+        enum:
+        - active
+        - inactive
+        example: active
     type: object
   service.UpdateRoleInput:
     properties:
@@ -733,6 +896,127 @@ paths:
       summary: Use a one-time reset token to set a new password
       tags:
       - auth
+  /classes:
+    get:
+      parameters:
+      - description: Required for SuperAdmin
+        in: header
+        name: X-School-ID
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/model.Class'
+            type: array
+      security:
+      - BearerAuth: []
+      summary: List classes for the resolved school
+      tags:
+      - structure
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Required for SuperAdmin
+        in: header
+        name: X-School-ID
+        type: integer
+      - description: Class details
+        in: body
+        name: payload
+        required: true
+        schema:
+          $ref: '#/definitions/service.CreateClassInput'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/model.Class'
+      security:
+      - BearerAuth: []
+      summary: Create a class for the resolved school
+      tags:
+      - structure
+  /classes/{id}:
+    delete:
+      parameters:
+      - description: Required for SuperAdmin
+        in: header
+        name: X-School-ID
+        type: integer
+      - description: Class ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      responses:
+        "204":
+          description: No Content
+      security:
+      - BearerAuth: []
+      summary: Deactivate a class
+      tags:
+      - structure
+    get:
+      parameters:
+      - description: Required for SuperAdmin
+        in: header
+        name: X-School-ID
+        type: integer
+      - description: Class ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.Class'
+      security:
+      - BearerAuth: []
+      summary: Get a class from the resolved school
+      tags:
+      - structure
+    patch:
+      consumes:
+      - application/json
+      parameters:
+      - description: Required for SuperAdmin
+        in: header
+        name: X-School-ID
+        type: integer
+      - description: Class ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Fields to update
+        in: body
+        name: payload
+        required: true
+        schema:
+          $ref: '#/definitions/service.UpdateClassInput'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.Class'
+      security:
+      - BearerAuth: []
+      summary: Update a class
+      tags:
+      - structure
   /health:
     get:
       produces:
@@ -749,6 +1033,268 @@ paths:
       summary: Check service health
       tags:
       - health
+  /levels:
+    get:
+      parameters:
+      - description: Required for SuperAdmin
+        in: header
+        name: X-School-ID
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/model.Level'
+            type: array
+      security:
+      - BearerAuth: []
+      summary: List levels for the resolved school
+      tags:
+      - structure
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Required for SuperAdmin
+        in: header
+        name: X-School-ID
+        type: integer
+      - description: Level details
+        in: body
+        name: payload
+        required: true
+        schema:
+          $ref: '#/definitions/service.CreateLevelInput'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/model.Level'
+      security:
+      - BearerAuth: []
+      summary: Create a level for the resolved school
+      tags:
+      - structure
+  /levels/{id}:
+    delete:
+      parameters:
+      - description: Required for SuperAdmin
+        in: header
+        name: X-School-ID
+        type: integer
+      - description: Level ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      responses:
+        "204":
+          description: No Content
+      security:
+      - BearerAuth: []
+      summary: Deactivate a level
+      tags:
+      - structure
+    get:
+      parameters:
+      - description: Required for SuperAdmin
+        in: header
+        name: X-School-ID
+        type: integer
+      - description: Level ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.Level'
+      security:
+      - BearerAuth: []
+      summary: Get a level from the resolved school
+      tags:
+      - structure
+    patch:
+      consumes:
+      - application/json
+      parameters:
+      - description: Required for SuperAdmin
+        in: header
+        name: X-School-ID
+        type: integer
+      - description: Level ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Fields to update
+        in: body
+        name: payload
+        required: true
+        schema:
+          $ref: '#/definitions/service.UpdateLevelInput'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.Level'
+      security:
+      - BearerAuth: []
+      summary: Update a level
+      tags:
+      - structure
+  /lookups/{type}:
+    get:
+      parameters:
+      - description: Lookup type
+        enum:
+        - jobs
+        - decrees
+        - subjects
+        - exams
+        - periods
+        - attendance-status
+        - attendance-conditions
+        - staff-status-types
+        - amount-types
+        - expense-types
+        in: path
+        name: type
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/model.LookupItem'
+            type: array
+      security:
+      - BearerAuth: []
+      summary: List global lookup values
+      tags:
+      - structure
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Lookup type
+        in: path
+        name: type
+        required: true
+        type: string
+      - description: Lookup value
+        in: body
+        name: payload
+        required: true
+        schema:
+          $ref: '#/definitions/service.CreateLookupInput'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/model.LookupItem'
+      security:
+      - BearerAuth: []
+      summary: Create a global lookup value
+      tags:
+      - structure
+  /lookups/{type}/{id}:
+    delete:
+      parameters:
+      - description: Lookup type
+        in: path
+        name: type
+        required: true
+        type: string
+      - description: Lookup ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      responses:
+        "204":
+          description: No Content
+      security:
+      - BearerAuth: []
+      summary: Deactivate a global lookup value
+      tags:
+      - structure
+    get:
+      parameters:
+      - description: Lookup type
+        in: path
+        name: type
+        required: true
+        type: string
+      - description: Lookup ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.LookupItem'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/handler.errorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get a global lookup value
+      tags:
+      - structure
+    patch:
+      consumes:
+      - application/json
+      parameters:
+      - description: Lookup type
+        in: path
+        name: type
+        required: true
+        type: string
+      - description: Lookup ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Fields to update
+        in: body
+        name: payload
+        required: true
+        schema:
+          $ref: '#/definitions/service.UpdateLookupInput'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.LookupItem'
+      security:
+      - BearerAuth: []
+      summary: Update or reactivate a global lookup value
+      tags:
+      - structure
   /permissions:
     get:
       produces:

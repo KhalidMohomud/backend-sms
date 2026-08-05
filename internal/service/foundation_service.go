@@ -22,6 +22,7 @@ var (
 	ErrNoChanges       = errors.New("at least one field must be provided")
 	ErrConflict        = errors.New("record is in use and cannot be deleted")
 	ErrProtectedRecord = errors.New("protected system record cannot be changed")
+	ErrInvalidInput    = errors.New("invalid input")
 )
 
 type CreateSchoolInput struct {

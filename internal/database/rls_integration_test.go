@@ -27,6 +27,12 @@ func TestRLSIsolatesSchoolsAndAllowsSuperAdmin(t *testing.T) {
 	if err := ApplyFoundationRLS(db); err != nil {
 		t.Fatal(err)
 	}
+	if err := MigratePhase2(db); err != nil {
+		t.Fatal(err)
+	}
+	if err := ApplyPhase2RLS(db); err != nil {
+		t.Fatal(err)
+	}
 	if err := ConfigureFoundationModels(db); err != nil {
 		t.Fatal(err)
 	}
@@ -72,6 +78,74 @@ func TestRLSIsolatesSchoolsAndAllowsSuperAdmin(t *testing.T) {
 		t.Fatalf("school A saw schools %#v; expected only school %d", visibleSchools, schoolA.ID)
 	}
 	txA.Rollback()
+
+	levelA := model.Level{SchoolID: schoolA.ID, Name: fmt.Sprintf("RLS Level A %d", suffix), Price: 10, Status: model.RecordStatusActive}
+	levelB := model.Level{SchoolID: schoolB.ID, Name: fmt.Sprintf("RLS Level B %d", suffix), Price: 10, Status: model.RecordStatusActive}
+	if err := db.Create(&levelA).Error; err != nil {
+		t.Fatal(err)
+	}
+	if err := db.Create(&levelB).Error; err != nil {
+		t.Fatal(err)
+	}
+	defer db.Delete(&model.Level{}, []uint64{levelA.ID, levelB.ID})
+	classA := model.Class{SchoolID: schoolA.ID, LevelID: levelA.ID, Name: fmt.Sprintf("RLS Class A %d", suffix), Status: model.RecordStatusActive}
+	classB := model.Class{SchoolID: schoolB.ID, LevelID: levelB.ID, Name: fmt.Sprintf("RLS Class B %d", suffix), Status: model.RecordStatusActive}
+	if err := db.Create(&classA).Error; err != nil {
+		t.Fatal(err)
+	}
+	if err := db.Create(&classB).Error; err != nil {
+		t.Fatal(err)
+	}
+	defer db.Delete(&model.Class{}, []uint64{classA.ID, classB.ID})
+	mismatchedClass := model.Class{
+		SchoolID: schoolA.ID, LevelID: levelB.ID,
+		Name: fmt.Sprintf("RLS mismatched class %d", suffix), Status: model.RecordStatusActive,
+	}
+	if err := db.Create(&mismatchedClass).Error; err == nil {
+		t.Fatal("database accepted a class whose level belongs to another school")
+	}
+
+	ctxLevel, txLevel, err := BeginRequest(context.Background(), db, SecurityScope{Principal: principalA})
+	if err != nil {
+		t.Fatal(err)
+	}
+	var visibleLevels []model.Level
+	if err := FromContext(ctxLevel, db).Where("lev_no IN ?", []uint64{levelA.ID, levelB.ID}).Find(&visibleLevels).Error; err != nil {
+		t.Fatal(err)
+	}
+	if len(visibleLevels) != 1 || visibleLevels[0].ID != levelA.ID {
+		t.Fatalf("school A saw levels %#v; expected only level %d", visibleLevels, levelA.ID)
+	}
+	var visibleClasses []model.Class
+	if err := FromContext(ctxLevel, db).Where("cl_no IN ?", []uint64{classA.ID, classB.ID}).Find(&visibleClasses).Error; err != nil {
+		t.Fatal(err)
+	}
+	if len(visibleClasses) != 1 || visibleClasses[0].ID != classA.ID {
+		t.Fatalf("school A saw classes %#v; expected only class %d", visibleClasses, classA.ID)
+	}
+	txLevel.Rollback()
+
+	ctxLevelWrite, txLevelWrite, err := BeginRequest(context.Background(), db, SecurityScope{Principal: principalA})
+	if err != nil {
+		t.Fatal(err)
+	}
+	forbiddenLevel := model.Level{SchoolID: schoolB.ID, Name: fmt.Sprintf("RLS forbidden %d", suffix), Status: model.RecordStatusActive}
+	if err := FromContext(ctxLevelWrite, db).Create(&forbiddenLevel).Error; err == nil {
+		t.Fatal("school A inserted a level for school B")
+	}
+	txLevelWrite.Rollback()
+
+	ctxLookupWrite, txLookupWrite, err := BeginRequest(context.Background(), db, SecurityScope{Principal: principalA})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := FromContext(ctxLookupWrite, db).Table("subjects").Create(map[string]any{
+		"sub_name": fmt.Sprintf("RLS forbidden %d", suffix),
+		"status":   "active",
+	}).Error; err == nil {
+		t.Fatal("SchoolAdmin mutated a SuperAdmin-only global lookup")
+	}
+	txLookupWrite.Rollback()
 
 	var registrar model.Role
 	if err := db.Where("role_name = ?", model.RoleRegistrar).First(&registrar).Error; err != nil {

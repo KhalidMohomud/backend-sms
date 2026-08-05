@@ -79,6 +79,7 @@ func (r *userRepository) UpdateProfile(ctx context.Context, user *model.User) er
 	return nil
 }
 
+// UpdatePassword updates the password hash of a user and resets failed login attempts. If the user does not exist, it returns ErrNotFound.
 func (r *userRepository) UpdatePassword(ctx context.Context, id uint64, passwordHash string) error {
 	result := database.FromContext(ctx, r.db).Model(&model.User{}).Where("usr_no = ?", id).
 		Updates(map[string]any{
@@ -95,6 +96,8 @@ func (r *userRepository) UpdatePassword(ctx context.Context, id uint64, password
 	return nil
 }
 
+// UpdateStatus updates the status of a user. If the user does not exist, it returns ErrNotFound.
+
 func (r *userRepository) UpdateStatus(ctx context.Context, id uint64, status model.UserStatus) error {
 	updates := map[string]any{"status": status}
 	if status == model.UserStatusActive {
@@ -110,6 +113,7 @@ func (r *userRepository) UpdateStatus(ctx context.Context, id uint64, status mod
 	return nil
 }
 
+// CountSuperAdmins returns the number of super admins in the system.
 func (r *userRepository) CountSuperAdmins(ctx context.Context) (int64, error) {
 	var count int64
 	err := database.FromContext(ctx, r.db).Model(&model.User{}).

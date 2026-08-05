@@ -583,7 +583,7 @@ func writeServiceError(c *gin.Context, err error) {
 		c.JSON(http.StatusForbidden, errorResponse{Error: err.Error()})
 	case errors.Is(err, service.ErrDuplicateRecord), errors.Is(err, service.ErrConflict):
 		c.JSON(http.StatusConflict, errorResponse{Error: err.Error()})
-	case errors.Is(err, service.ErrInvalidDate), errors.Is(err, service.ErrNoChanges):
+	case errors.Is(err, service.ErrInvalidDate), errors.Is(err, service.ErrNoChanges), errors.Is(err, service.ErrInvalidInput):
 		c.JSON(http.StatusBadRequest, errorResponse{Error: err.Error()})
 	case errors.Is(err, repository.ErrNotFound):
 		c.JSON(http.StatusNotFound, errorResponse{Error: err.Error()})

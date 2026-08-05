@@ -60,6 +60,8 @@ func SeedFoundation(ctx context.Context, db *gorm.DB) error {
 		{Name: model.PermissionManageUsers, Description: "Create and manage user accounts"},
 		{Name: model.PermissionManageRoles, Description: "View and manage access-control definitions"},
 		{Name: model.PermissionViewAuditLogs, Description: "View security and data audit events"},
+		{Name: model.PermissionManageLookups, Description: "Create and manage global reference data"},
+		{Name: model.PermissionManageStructure, Description: "Create and manage levels and classes"},
 	}
 	roles := []model.Role{
 		{Name: model.RoleSuperAdmin, Description: "Platform administrator with access to all schools", Status: model.RoleStatusActive, IsSystem: true},
@@ -103,9 +105,11 @@ func SeedFoundation(ctx context.Context, db *gorm.DB) error {
 			model.RoleSuperAdmin: {
 				model.PermissionManageSchools, model.PermissionManageAcademicYears,
 				model.PermissionManageUsers, model.PermissionManageRoles, model.PermissionViewAuditLogs,
+				model.PermissionManageLookups, model.PermissionManageStructure,
 			},
 			model.RoleSchoolAdmin: {
 				model.PermissionManageAcademicYears, model.PermissionManageUsers, model.PermissionViewAuditLogs,
+				model.PermissionManageStructure,
 			},
 		}
 		for roleName, names := range assignments {

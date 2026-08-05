@@ -16,6 +16,7 @@ import (
 func New(
 	auth *handler.AuthHandler,
 	foundation *handler.FoundationHandler,
+	structure *handler.StructureHandler,
 	health *handler.HealthHandler,
 	jwt *security.JWTManager,
 	users repository.UserRepository,
@@ -46,6 +47,27 @@ func New(
 		secured := v1.Group("")
 		secured.Use(middleware.Authenticate(jwt, users, db, sessions))
 		{
+			lookups := secured.Group("/lookups")
+			lookups.GET("/:type", structure.ListLookups)
+			lookups.GET("/:type/:id", structure.GetLookup)
+			lookups.POST("/:type", middleware.RequirePermission(model.PermissionManageLookups), structure.CreateLookup)
+			lookups.PATCH("/:type/:id", middleware.RequirePermission(model.PermissionManageLookups), structure.UpdateLookup)
+			lookups.DELETE("/:type/:id", middleware.RequirePermission(model.PermissionManageLookups), structure.ArchiveLookup)
+
+			levels := secured.Group("/levels", middleware.RequireSchool())
+			levels.GET("", structure.ListLevels)
+			levels.GET("/:id", structure.GetLevel)
+			levels.POST("", middleware.RequirePermission(model.PermissionManageStructure), structure.CreateLevel)
+			levels.PATCH("/:id", middleware.RequirePermission(model.PermissionManageStructure), structure.UpdateLevel)
+			levels.DELETE("/:id", middleware.RequirePermission(model.PermissionManageStructure), structure.ArchiveLevel)
+
+			classes := secured.Group("/classes", middleware.RequireSchool())
+			classes.GET("", structure.ListClasses)
+			classes.GET("/:id", structure.GetClass)
+			classes.POST("", middleware.RequirePermission(model.PermissionManageStructure), structure.CreateClass)
+			classes.PATCH("/:id", middleware.RequirePermission(model.PermissionManageStructure), structure.UpdateClass)
+			classes.DELETE("/:id", middleware.RequirePermission(model.PermissionManageStructure), structure.ArchiveClass)
+
 			schools := secured.Group("/schools", middleware.RequirePermission(model.PermissionManageSchools))
 			schools.GET("", foundation.ListSchools)
 			schools.GET("/:id", foundation.GetSchool)

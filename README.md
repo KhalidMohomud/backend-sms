@@ -2,7 +2,10 @@
 
 Backend foundation built with Go 1.26, Gin, GORM, PostgreSQL, Redis, JWT, Swagger, and Docker. The code follows a handler → service → repository structure.
 
-Implementation documentation: [Phase 1 — Foundation](documentation/phase-1-foundation.md).
+Implementation documentation:
+
+- [Phase 1 — Foundation](documentation/phase-1-foundation.md)
+- [Phase 2 — School Structure](documentation/phase-2-school-structure.md)
 
 ## Project structure
 
@@ -57,6 +60,12 @@ Environment variables are read from the process environment; `.env` is consumed 
 - `POST /api/v1/auth/change-password`
 - `GET|POST /api/v1/schools`
 - `GET|PATCH|DELETE /api/v1/schools/:id`
+- `GET|POST /api/v1/lookups/:type`
+- `GET|PATCH|DELETE /api/v1/lookups/:type/:id`
+- `GET|POST /api/v1/levels`
+- `GET|PATCH|DELETE /api/v1/levels/:id`
+- `GET|POST /api/v1/classes`
+- `GET|PATCH|DELETE /api/v1/classes/:id`
 - `GET|POST /api/v1/academic-years`
 - `PATCH|DELETE /api/v1/academic-years/:id`
 - `GET|POST /api/v1/users`

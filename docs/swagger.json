@@ -485,6 +485,202 @@
                 }
             }
         },
+        "/classes": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "structure"
+                ],
+                "summary": "List classes for the resolved school",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Required for SuperAdmin",
+                        "name": "X-School-ID",
+                        "in": "header"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/model.Class"
+                            }
+                        }
+                    }
+                }
+            },
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "structure"
+                ],
+                "summary": "Create a class for the resolved school",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Required for SuperAdmin",
+                        "name": "X-School-ID",
+                        "in": "header"
+                    },
+                    {
+                        "description": "Class details",
+                        "name": "payload",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/service.CreateClassInput"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/model.Class"
+                        }
+                    }
+                }
+            }
+        },
+        "/classes/{id}": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "structure"
+                ],
+                "summary": "Get a class from the resolved school",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Required for SuperAdmin",
+                        "name": "X-School-ID",
+                        "in": "header"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Class ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/model.Class"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "tags": [
+                    "structure"
+                ],
+                "summary": "Deactivate a class",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Required for SuperAdmin",
+                        "name": "X-School-ID",
+                        "in": "header"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Class ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "No Content"
+                    }
+                }
+            },
+            "patch": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "structure"
+                ],
+                "summary": "Update a class",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Required for SuperAdmin",
+                        "name": "X-School-ID",
+                        "in": "header"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Class ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Fields to update",
+                        "name": "payload",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/service.UpdateClassInput"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/model.Class"
+                        }
+                    }
+                }
+            }
+        },
         "/health": {
             "get": {
                 "produces": [
@@ -505,6 +701,421 @@
                         "description": "Service Unavailable",
                         "schema": {
                             "$ref": "#/definitions/handler.errorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/levels": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "structure"
+                ],
+                "summary": "List levels for the resolved school",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Required for SuperAdmin",
+                        "name": "X-School-ID",
+                        "in": "header"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/model.Level"
+                            }
+                        }
+                    }
+                }
+            },
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "structure"
+                ],
+                "summary": "Create a level for the resolved school",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Required for SuperAdmin",
+                        "name": "X-School-ID",
+                        "in": "header"
+                    },
+                    {
+                        "description": "Level details",
+                        "name": "payload",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/service.CreateLevelInput"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/model.Level"
+                        }
+                    }
+                }
+            }
+        },
+        "/levels/{id}": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "structure"
+                ],
+                "summary": "Get a level from the resolved school",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Required for SuperAdmin",
+                        "name": "X-School-ID",
+                        "in": "header"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Level ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/model.Level"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "tags": [
+                    "structure"
+                ],
+                "summary": "Deactivate a level",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Required for SuperAdmin",
+                        "name": "X-School-ID",
+                        "in": "header"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Level ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "No Content"
+                    }
+                }
+            },
+            "patch": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "structure"
+                ],
+                "summary": "Update a level",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Required for SuperAdmin",
+                        "name": "X-School-ID",
+                        "in": "header"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Level ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Fields to update",
+                        "name": "payload",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/service.UpdateLevelInput"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/model.Level"
+                        }
+                    }
+                }
+            }
+        },
+        "/lookups/{type}": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "structure"
+                ],
+                "summary": "List global lookup values",
+                "parameters": [
+                    {
+                        "enum": [
+                            "jobs",
+                            "decrees",
+                            "subjects",
+                            "exams",
+                            "periods",
+                            "attendance-status",
+                            "attendance-conditions",
+                            "staff-status-types",
+                            "amount-types",
+                            "expense-types"
+                        ],
+                        "type": "string",
+                        "description": "Lookup type",
+                        "name": "type",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/model.LookupItem"
+                            }
+                        }
+                    }
+                }
+            },
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "structure"
+                ],
+                "summary": "Create a global lookup value",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Lookup type",
+                        "name": "type",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Lookup value",
+                        "name": "payload",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/service.CreateLookupInput"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/model.LookupItem"
+                        }
+                    }
+                }
+            }
+        },
+        "/lookups/{type}/{id}": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "structure"
+                ],
+                "summary": "Get a global lookup value",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Lookup type",
+                        "name": "type",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Lookup ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/model.LookupItem"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/handler.errorResponse"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "tags": [
+                    "structure"
+                ],
+                "summary": "Deactivate a global lookup value",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Lookup type",
+                        "name": "type",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Lookup ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "No Content"
+                    }
+                }
+            },
+            "patch": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "structure"
+                ],
+                "summary": "Update or reactivate a global lookup value",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Lookup type",
+                        "name": "type",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Lookup ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Fields to update",
+                        "name": "payload",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/service.UpdateLookupInput"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/model.LookupItem"
                         }
                     }
                 }
@@ -1344,6 +1955,81 @@
                 }
             }
         },
+        "model.Class": {
+            "type": "object",
+            "properties": {
+                "created_at": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "level": {
+                    "$ref": "#/definitions/model.Level"
+                },
+                "level_id": {
+                    "type": "integer"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "school_id": {
+                    "type": "integer"
+                },
+                "status": {
+                    "$ref": "#/definitions/model.RecordStatus"
+                },
+                "updated_at": {
+                    "type": "string"
+                }
+            }
+        },
+        "model.Level": {
+            "type": "object",
+            "properties": {
+                "created_at": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "price": {
+                    "type": "number"
+                },
+                "school_id": {
+                    "type": "integer"
+                },
+                "status": {
+                    "$ref": "#/definitions/model.RecordStatus"
+                },
+                "updated_at": {
+                    "type": "string"
+                }
+            }
+        },
+        "model.LookupItem": {
+            "type": "object",
+            "properties": {
+                "created_at": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "status": {
+                    "$ref": "#/definitions/model.RecordStatus"
+                },
+                "updated_at": {
+                    "type": "string"
+                }
+            }
+        },
         "model.Permission": {
             "type": "object",
             "properties": {
@@ -1363,6 +2049,17 @@
                     "type": "string"
                 }
             }
+        },
+        "model.RecordStatus": {
+            "type": "string",
+            "enum": [
+                "active",
+                "inactive"
+            ],
+            "x-enum-varnames": [
+                "RecordStatusActive",
+                "RecordStatusInactive"
+            ]
         },
         "model.Role": {
             "type": "object",
@@ -1569,6 +2266,83 @@
                 }
             }
         },
+        "service.CreateClassInput": {
+            "type": "object",
+            "required": [
+                "level_id",
+                "name"
+            ],
+            "properties": {
+                "level_id": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "example": 1
+                },
+                "name": {
+                    "type": "string",
+                    "maxLength": 40,
+                    "minLength": 2,
+                    "example": "Form 1-A"
+                },
+                "status": {
+                    "enum": [
+                        "active",
+                        "inactive"
+                    ],
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/model.RecordStatus"
+                        }
+                    ],
+                    "example": "active"
+                }
+            }
+        },
+        "service.CreateLevelInput": {
+            "type": "object",
+            "required": [
+                "name"
+            ],
+            "properties": {
+                "name": {
+                    "type": "string",
+                    "maxLength": 40,
+                    "minLength": 2,
+                    "example": "Form 1"
+                },
+                "price": {
+                    "type": "number",
+                    "minimum": 0,
+                    "example": 25
+                },
+                "status": {
+                    "enum": [
+                        "active",
+                        "inactive"
+                    ],
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/model.RecordStatus"
+                        }
+                    ],
+                    "example": "active"
+                }
+            }
+        },
+        "service.CreateLookupInput": {
+            "type": "object",
+            "required": [
+                "name"
+            ],
+            "properties": {
+                "name": {
+                    "type": "string",
+                    "maxLength": 60,
+                    "minLength": 2,
+                    "example": "Mathematics"
+                }
+            }
+        },
         "service.CreateRoleInput": {
             "type": "object",
             "required": [
@@ -1766,6 +2540,85 @@
                     "type": "string",
                     "maxLength": 20,
                     "example": "2026-2027"
+                }
+            }
+        },
+        "service.UpdateClassInput": {
+            "type": "object",
+            "properties": {
+                "level_id": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "example": 1
+                },
+                "name": {
+                    "type": "string",
+                    "maxLength": 40,
+                    "minLength": 2,
+                    "example": "Form 1-A"
+                },
+                "status": {
+                    "enum": [
+                        "active",
+                        "inactive"
+                    ],
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/model.RecordStatus"
+                        }
+                    ],
+                    "example": "active"
+                }
+            }
+        },
+        "service.UpdateLevelInput": {
+            "type": "object",
+            "properties": {
+                "name": {
+                    "type": "string",
+                    "maxLength": 40,
+                    "minLength": 2,
+                    "example": "Form 1"
+                },
+                "price": {
+                    "type": "number",
+                    "minimum": 0,
+                    "example": 25
+                },
+                "status": {
+                    "enum": [
+                        "active",
+                        "inactive"
+                    ],
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/model.RecordStatus"
+                        }
+                    ],
+                    "example": "active"
+                }
+            }
+        },
+        "service.UpdateLookupInput": {
+            "type": "object",
+            "properties": {
+                "name": {
+                    "type": "string",
+                    "maxLength": 60,
+                    "minLength": 2,
+                    "example": "Mathematics"
+                },
+                "status": {
+                    "enum": [
+                        "active",
+                        "inactive"
+                    ],
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/model.RecordStatus"
+                        }
+                    ],
+                    "example": "active"
                 }
             }
         },
