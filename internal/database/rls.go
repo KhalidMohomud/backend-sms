@@ -31,7 +31,7 @@ func ApplyFoundationRLS(db *gorm.DB) error {
 		"ALTER TABLE schools ENABLE ROW LEVEL SECURITY",
 		"DROP POLICY IF EXISTS schools_select ON schools",
 		"DROP POLICY IF EXISTS schools_write ON schools",
-		"CREATE POLICY schools_select ON schools FOR SELECT TO kobciye_runtime USING (app_is_superadmin() OR sch_no = app_current_school())",
+		"CREATE POLICY schools_select ON schools FOR SELECT TO kobciye_runtime USING (app_auth_lookup() OR app_is_superadmin() OR sch_no = app_current_school())",
 		"CREATE POLICY schools_write ON schools FOR ALL TO kobciye_runtime USING (app_is_superadmin()) WITH CHECK (app_is_superadmin())",
 
 		"ALTER TABLE academic_years ENABLE ROW LEVEL SECURITY",

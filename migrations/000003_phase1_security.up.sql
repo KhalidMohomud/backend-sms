@@ -35,7 +35,7 @@ ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT USAGE, SELECT ON SEQUENCES TO ko
 
 ALTER TABLE schools ENABLE ROW LEVEL SECURITY;
 CREATE POLICY schools_select ON schools FOR SELECT TO kobciye_runtime
-USING (app_is_superadmin() OR sch_no = app_current_school());
+USING (app_auth_lookup() OR app_is_superadmin() OR sch_no = app_current_school());
 CREATE POLICY schools_write ON schools FOR ALL TO kobciye_runtime
 USING (app_is_superadmin()) WITH CHECK (app_is_superadmin());
 

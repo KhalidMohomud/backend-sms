@@ -106,7 +106,7 @@ func TestRequestTransactionRollsBackBusinessChangeWhenAuditFails(t *testing.T) {
 	if err := FromContext(ctx, db).Create(&school).Error; err != nil {
 		t.Fatal(err)
 	}
-	missingSchool := ^uint64(0)
+	missingSchool := uint64(9223372036854775807)
 	audit := model.AuditLog{UserID: nil, SchoolID: &missingSchool, Action: "INSERT", ResourceType: "schools", RecordID: &school.ID}
 	if err := FromContext(ctx, db).Create(&audit).Error; err == nil {
 		t.Fatal("invalid audit row unexpectedly succeeded")
