@@ -83,6 +83,39 @@ func TestLoginRejectsAccountFromInactiveSchool(t *testing.T) {
 	}
 }
 
+func TestRefreshRotatesTokenAndPasswordResetIsOneTime(t *testing.T) {
+	hash, _ := security.HashPassword("old-password-123")
+	users := &memoryUsers{user: &model.User{
+		ID: 4, Username: "admin", PasswordHash: hash, Status: model.UserStatusActive,
+		Role: model.Role{Name: model.RoleSuperAdmin, Status: model.RoleStatusActive},
+	}}
+	sessions := newMemorySessions()
+	audits := &memoryAudits{}
+	manager := security.NewJWTManager(config.JWTConfig{Secret: "test-secret-long-enough", Expiration: time.Hour, Issuer: "test"})
+	service := NewAuthService(users, manager, NewAuditWriter(audits), sessions)
+
+	refresh, _, _ := sessions.CreateRefresh(context.Background(), users.user.ID)
+	result, err := service.Refresh(context.Background(), RefreshInput{RefreshToken: refresh})
+	if err != nil || result.RefreshToken == refresh {
+		t.Fatalf("Refresh() = %#v, %v", result, err)
+	}
+	if _, _, _, err := sessions.RotateRefresh(context.Background(), refresh); !errors.Is(err, security.ErrInvalidToken) {
+		t.Fatalf("reused refresh token error = %v", err)
+	}
+
+	reset, _, _ := sessions.CreatePasswordReset(context.Background(), users.user.ID)
+	input := ResetPasswordInput{ResetToken: reset, NewPassword: "new-password-123"}
+	if err := service.ResetPassword(context.Background(), input, RequestMetadata{}); err != nil {
+		t.Fatalf("ResetPassword() error = %v", err)
+	}
+	if security.CheckPassword(users.user.PasswordHash, input.NewPassword) != nil {
+		t.Fatal("new password was not stored")
+	}
+	if err := service.ResetPassword(context.Background(), input, RequestMetadata{}); !errors.Is(err, security.ErrInvalidToken) {
+		t.Fatalf("reused reset token error = %v", err)
+	}
+}
+
 type memoryUsers struct{ user *model.User }
 
 func (m *memoryUsers) Create(_ context.Context, user *model.User) error { m.user = user; return nil }
@@ -119,7 +152,9 @@ func (m *memoryUsers) UpdateProfile(_ context.Context, user *model.User) error {
 }
 func (m *memoryUsers) UpdatePassword(_ context.Context, _ uint64, hash string) error {
 	m.user.PasswordHash = hash
-	m.user.Status = model.UserStatusActive
+	if m.user.Status == model.UserStatusLocked {
+		m.user.Status = model.UserStatusActive
+	}
 	m.user.FailedLogins = 0
 	return nil
 }

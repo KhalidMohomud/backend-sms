@@ -46,11 +46,14 @@ services:
     build:
       context: .
       target: build
-    entrypoint: ["go", "test", "-tags=integration", "./internal/database", "-run", "TestRLS", "-v"]
+    entrypoint: ["go", "test", "-tags=integration", "./internal/database", "./internal/security", "-v"]
     environment:
       TEST_DATABASE_DSN: "host=postgres port=5432 user=${POSTGRES_USER:-kobciye} password=${POSTGRES_PASSWORD:-kobciye} dbname=${POSTGRES_DB:-kobciye} sslmode=disable TimeZone=UTC"
+      TEST_REDIS_ADDR: "redis:6379"
     depends_on:
       postgres:
+        condition: service_healthy
+      redis:
         condition: service_healthy
 
 volumes:

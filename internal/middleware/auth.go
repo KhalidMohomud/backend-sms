@@ -44,6 +44,7 @@ func Authenticate(jwt *security.JWTManager, users repository.UserRepository, db 
 			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "could not establish database security context"})
 			return
 		}
+		defer tx.Rollback()
 		c.Request = c.Request.WithContext(requestContext)
 		user, err := users.FindByID(requestContext, tokenPrincipal.UserID)
 		if errors.Is(err, repository.ErrNotFound) || (err == nil && (user.Status != model.UserStatusActive || user.Role.Status == model.RoleStatusInactive || (user.SchoolID != nil && (user.School == nil || user.School.Status != model.SchoolStatusActive)))) {
@@ -77,6 +78,7 @@ func AuthenticationDatabase(db *gorm.DB) gin.HandlerFunc {
 			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "could not establish database security context"})
 			return
 		}
+		defer tx.Rollback()
 		c.Request = c.Request.WithContext(requestContext)
 		c.Next()
 		finishRequestTransaction(c, tx)

@@ -65,7 +65,11 @@ func (h *AuthHandler) Refresh(c *gin.Context) {
 	}
 	result, err := h.service.Refresh(c.Request.Context(), input)
 	if err != nil {
-		c.JSON(http.StatusUnauthorized, errorResponse{Error: "invalid or expired refresh token"})
+		if errors.Is(err, security.ErrInvalidToken) || errors.Is(err, service.ErrAccountUnavailable) {
+			c.JSON(http.StatusUnauthorized, errorResponse{Error: "invalid or expired refresh token"})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, errorResponse{Error: "could not refresh session"})
 		return
 	}
 	c.JSON(http.StatusOK, result)
@@ -147,7 +151,11 @@ func (h *AuthHandler) ResetPassword(c *gin.Context) {
 		return
 	}
 	if err := h.service.ResetPassword(c.Request.Context(), input, requestMetadata(c)); err != nil {
-		c.JSON(http.StatusBadRequest, errorResponse{Error: "invalid or expired reset token"})
+		if errors.Is(err, security.ErrInvalidToken) {
+			c.JSON(http.StatusBadRequest, errorResponse{Error: "invalid or expired reset token"})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, errorResponse{Error: "could not reset password"})
 		return
 	}
 	c.Status(http.StatusNoContent)

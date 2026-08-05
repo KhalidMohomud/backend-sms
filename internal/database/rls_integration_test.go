@@ -87,3 +87,37 @@ func TestRLSIsolatesSchoolsAndAllowsSuperAdmin(t *testing.T) {
 	}
 	txSuper.Rollback()
 }
+
+func TestRequestTransactionRollsBackBusinessChangeWhenAuditFails(t *testing.T) {
+	dsn := os.Getenv("TEST_DATABASE_DSN")
+	if dsn == "" {
+		t.Skip("TEST_DATABASE_DSN is required for the PostgreSQL transaction integration test")
+	}
+	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{TranslateError: true})
+	if err != nil {
+		t.Fatal(err)
+	}
+	super := authz.Principal{UserID: 900000, Role: model.RoleSuperAdmin}
+	ctx, tx, err := BeginRequest(context.Background(), db, SecurityScope{Principal: super})
+	if err != nil {
+		t.Fatal(err)
+	}
+	school := model.School{Name: fmt.Sprintf("Atomic rollback %d", time.Now().UnixNano()), Status: model.SchoolStatusActive}
+	if err := FromContext(ctx, db).Create(&school).Error; err != nil {
+		t.Fatal(err)
+	}
+	missingSchool := ^uint64(0)
+	audit := model.AuditLog{UserID: nil, SchoolID: &missingSchool, Action: "INSERT", ResourceType: "schools", RecordID: &school.ID}
+	if err := FromContext(ctx, db).Create(&audit).Error; err == nil {
+		t.Fatal("invalid audit row unexpectedly succeeded")
+	}
+	tx.Rollback()
+
+	var count int64
+	if err := db.Model(&model.School{}).Where("sch_no = ?", school.ID).Count(&count).Error; err != nil {
+		t.Fatal(err)
+	}
+	if count != 0 {
+		t.Fatalf("school %d remained after audit failure rollback", school.ID)
+	}
+}

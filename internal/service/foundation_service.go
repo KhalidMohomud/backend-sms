@@ -493,6 +493,9 @@ func (s *FoundationService) CreateRole(ctx context.Context, actor authz.Principa
 		}
 		return nil, fmt.Errorf("create role: %w", err)
 	}
+	if err := s.foundation.ReplaceRolePermissions(ctx, role.ID, permissions); err != nil {
+		return nil, fmt.Errorf("assign role permissions: %w", err)
+	}
 	if err := s.audit.Write(ctx, &actor.UserID, nil, "INSERT", "roles", &role.ID, request, map[string]any{"permission_ids": input.PermissionIDs}); err != nil {
 		return nil, err
 	}

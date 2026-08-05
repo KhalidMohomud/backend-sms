@@ -78,7 +78,11 @@ func (r *userRepository) UpdateProfile(ctx context.Context, user *model.User) er
 
 func (r *userRepository) UpdatePassword(ctx context.Context, id uint64, passwordHash string) error {
 	result := database.FromContext(ctx, r.db).Model(&model.User{}).Where("usr_no = ?", id).
-		Updates(map[string]any{"password_hash": passwordHash, "failed_logins": 0, "status": model.UserStatusActive})
+		Updates(map[string]any{
+			"password_hash": passwordHash,
+			"failed_logins": 0,
+			"status":        gorm.Expr("CASE WHEN status = ? THEN ? ELSE status END", model.UserStatusLocked, model.UserStatusActive),
+		})
 	if result.Error != nil {
 		return result.Error
 	}

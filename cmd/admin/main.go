@@ -1,8 +1,10 @@
 package main
 
 import (
+	"backendapi/internal/authz"
 	"backendapi/internal/config"
 	"backendapi/internal/database"
+	"backendapi/internal/model"
 	"backendapi/internal/repository"
 	"backendapi/internal/service"
 	"context"
@@ -82,13 +84,24 @@ func createSuperAdmin(ctx context.Context, cfg config.Config, db *gorm.DB, args 
 	if err := database.SeedFoundation(ctx, db); err != nil {
 		return err
 	}
+	if err := database.ApplyFoundationRLS(db); err != nil {
+		return err
+	}
+	requestContext, tx, err := database.BeginRequest(ctx, db, database.SecurityScope{Principal: authz.Principal{Role: model.RoleSuperAdmin}})
+	if err != nil {
+		return err
+	}
 	users := repository.NewUserRepository(db)
 	foundation := repository.NewFoundationRepository(db)
 	audit := service.NewAuditWriter(repository.NewAuditRepository(db))
 	user, err := service.NewAdminService(users, foundation, audit).
-		CreateInitialSuperAdmin(ctx, *username, string(password))
+		CreateInitialSuperAdmin(requestContext, *username, string(password))
 	if err != nil {
+		tx.Rollback()
 		return err
+	}
+	if err := tx.Commit().Error; err != nil {
+		return fmt.Errorf("commit SuperAdmin creation: %w", err)
 	}
 	fmt.Printf("SuperAdmin %q created with ID %d\n", user.Username, user.ID)
 	return nil
@@ -131,7 +144,7 @@ func verifyFoundation(ctx context.Context, db *gorm.DB) error {
 	for _, role := range roles {
 		permissionCounts[role.Name] = len(role.Permissions)
 	}
-	if len(roles) != 5 || len(permissions) != 5 || permissionCounts["SuperAdmin"] != 5 || permissionCounts["SchoolAdmin"] != 3 {
+	if len(roles) < 5 || len(permissions) != 5 || permissionCounts["SuperAdmin"] != 5 || permissionCounts["SchoolAdmin"] != 3 {
 		return fmt.Errorf("unexpected access-control seed: roles=%d permissions=%d assignments=%v", len(roles), len(permissions), permissionCounts)
 	}
 	var triggerCount int64

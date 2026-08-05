@@ -85,6 +85,31 @@ func TestDeleteUserDisablesAccount(t *testing.T) {
 	}
 }
 
+func TestRoleManagementProtectsSuperAdminAndAuditsAssignments(t *testing.T) {
+	repo := &memoryFoundation{
+		roles:       map[uint64]*model.Role{1: {ID: 1, Name: model.RoleSuperAdmin, Status: model.RoleStatusActive, IsSystem: true}},
+		permissions: map[uint64]model.Permission{3: {ID: 3, Name: model.PermissionManageUsers}},
+	}
+	audits := &memoryAudits{}
+	service := NewFoundationService(repo, &memoryUsers{}, audits, NewAuditWriter(audits), newMemorySessions())
+	actor := authz.Principal{UserID: 1, Role: model.RoleSuperAdmin}
+	name := "Changed"
+
+	if _, err := service.UpdateRole(context.Background(), actor, 1, UpdateRoleInput{Name: &name}, RequestMetadata{}); err != ErrProtectedRecord {
+		t.Fatalf("UpdateRole(SuperAdmin) error = %v, want ErrProtectedRecord", err)
+	}
+	role, err := service.CreateRole(context.Background(), actor, CreateRoleInput{Name: "Counselor", PermissionIDs: []uint64{3}}, RequestMetadata{})
+	if err != nil {
+		t.Fatalf("CreateRole() error = %v", err)
+	}
+	if role.Name != "Counselor" || len(role.Permissions) != 1 || audits.entries[len(audits.entries)-1].ResourceType != "roles" {
+		t.Fatalf("unexpected custom role: %#v, audits: %#v", role, audits.entries)
+	}
+	if _, err := service.CreateRole(context.Background(), authz.Principal{}, CreateRoleInput{Name: "Forbidden"}, RequestMetadata{}); err != ErrForbidden {
+		t.Fatalf("non-SuperAdmin CreateRole() error = %v, want ErrForbidden", err)
+	}
+}
+
 type memoryFoundation struct {
 	schools     map[uint64]*model.School
 	years       map[uint64]*model.AcademicYear

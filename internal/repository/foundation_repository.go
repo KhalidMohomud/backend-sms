@@ -158,7 +158,7 @@ func (r *foundationRepository) ListRoles(ctx context.Context) ([]model.Role, err
 
 // CreateRole creates a new role in the system. It does not assign any permissions to the role; use ReplaceRolePermissions for that.
 func (r *foundationRepository) CreateRole(ctx context.Context, role *model.Role) error {
-	return database.FromContext(ctx, r.db).Create(role).Error
+	return database.FromContext(ctx, r.db).Omit("Permissions").Create(role).Error
 }
 
 // UpdateRole updates the name, description, and status of a role. It does not update the permissions assigned to the role; use ReplaceRolePermissions for that. If the role does not exist, it returns ErrNotFound.
