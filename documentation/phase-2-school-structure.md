@@ -157,6 +157,22 @@ The integration suite proves:
 - School A sees its own levels but not School B's levels.
 - School A cannot insert a level for School B.
 - SchoolAdmin cannot write a global lookup even when bypassing HTTP middleware.
+- PostgreSQL rejects a class linked to a level from another school.
+- Lookup names remain unique regardless of letter case.
 - SuperAdmin RLS behavior remains available.
 - Redis session security from Phase 1 remains operational.
 
+Final runtime result:
+
+```text
+Phase 1 and Phase 2 verifier: 19 tables, 6 roles, 7 permissions
+Audit trigger: active
+RLS: active on all 19 current tables
+GET /api/v1/lookups/subjects: 200 OK
+GET /api/v1/levels: 200 OK
+GET /api/v1/classes: 200 OK
+Swagger UI: 200 OK
+PostgreSQL: healthy
+Redis: healthy
+API: running on host port 8081
+```
