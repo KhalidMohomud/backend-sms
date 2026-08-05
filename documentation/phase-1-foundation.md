@@ -172,7 +172,7 @@ Secrets must be supplied by the deployment environment and must never be committ
 | `POST` | `/api/v1/auth/logout-all` | Authenticated; revoke every session |
 | `POST` | `/api/v1/auth/change-password` | Authenticated |
 | `GET`, `POST` | `/api/v1/schools` | `manage_schools` (SuperAdmin) |
-| `PATCH`, `DELETE` | `/api/v1/schools/{id}` | `manage_schools` (SuperAdmin) |
+| `GET`, `PATCH`, `DELETE` | `/api/v1/schools/{id}` | `manage_schools` (SuperAdmin) |
 | `GET` | `/api/v1/academic-years` | Authenticated, school scoped |
 | `POST` | `/api/v1/academic-years` | `manage_academic_years`, school scoped |
 | `PATCH`, `DELETE` | `/api/v1/academic-years/{id}` | `manage_academic_years`, school scoped |
@@ -231,6 +231,7 @@ curl http://localhost:8081/api/v1/schools \
 - [x] Permission middleware and tests
 - [x] Operator-only SuperAdmin command and test
 - [x] Foundation endpoints
+- [x] Single-school lookup endpoint
 - [x] School update and safe delete endpoints
 - [x] Academic-year update and protected delete endpoints
 - [x] User safe delete endpoint

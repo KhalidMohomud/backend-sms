@@ -56,7 +56,7 @@ Environment variables are read from the process environment; `.env` is consumed 
 - `POST /api/v1/auth/logout-all`
 - `POST /api/v1/auth/change-password`
 - `GET|POST /api/v1/schools`
-- `PATCH|DELETE /api/v1/schools/:id`
+- `GET|PATCH|DELETE /api/v1/schools/:id`
 - `GET|POST /api/v1/academic-years`
 - `PATCH|DELETE /api/v1/academic-years/:id`
 - `GET|POST /api/v1/users`
