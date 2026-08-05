@@ -42,6 +42,23 @@ definitions:
       year_name:
         type: string
     type: object
+  model.Address:
+    properties:
+      area:
+        type: string
+      created_at:
+        type: string
+      district:
+        type: string
+      id:
+        type: integer
+      school_id:
+        type: integer
+      updated_at:
+        type: string
+      village:
+        type: string
+    type: object
   model.AuditLog:
     properties:
       action:
@@ -77,6 +94,32 @@ definitions:
         type: string
       school_id:
         type: integer
+      status:
+        $ref: '#/definitions/model.RecordStatus'
+      updated_at:
+        type: string
+    type: object
+  model.Decree:
+    properties:
+      created_at:
+        type: string
+      id:
+        type: integer
+      name:
+        type: string
+      status:
+        $ref: '#/definitions/model.RecordStatus'
+      updated_at:
+        type: string
+    type: object
+  model.Job:
+    properties:
+      created_at:
+        type: string
+      id:
+        type: integer
+      name:
+        type: string
       status:
         $ref: '#/definitions/model.RecordStatus'
       updated_at:
@@ -133,6 +176,23 @@ definitions:
     x-enum-varnames:
     - RecordStatusActive
     - RecordStatusInactive
+  model.Responsible:
+    properties:
+      created_at:
+        type: string
+      id:
+        type: integer
+      name:
+        type: string
+      phone:
+        type: string
+      relationship:
+        type: string
+      school_id:
+        type: integer
+      updated_at:
+        type: string
+    type: object
   model.Role:
     properties:
       created_at:
@@ -191,6 +251,130 @@ definitions:
     x-enum-varnames:
     - SchoolStatusActive
     - SchoolStatusInactive
+  model.Sex:
+    enum:
+    - M
+    - F
+    type: string
+    x-enum-varnames:
+    - SexMale
+    - SexFemale
+  model.Staff:
+    properties:
+      address:
+        $ref: '#/definitions/model.Address'
+      address_id:
+        type: integer
+      created_at:
+        type: string
+      decree:
+        $ref: '#/definitions/model.Decree'
+      decree_id:
+        type: integer
+      description:
+        type: string
+      hired_date:
+        type: string
+      id:
+        type: integer
+      job:
+        $ref: '#/definitions/model.Job'
+      job_id:
+        type: integer
+      name:
+        type: string
+      phone:
+        type: string
+      salary:
+        type: number
+      school_id:
+        type: integer
+      sex:
+        $ref: '#/definitions/model.Sex'
+      updated_at:
+        type: string
+    type: object
+  model.StaffStatus:
+    properties:
+      created_at:
+        type: string
+      description:
+        type: string
+      id:
+        type: integer
+      school_id:
+        type: integer
+      staff_id:
+        type: integer
+      status_date:
+        type: string
+      status_type:
+        $ref: '#/definitions/model.StaffStatusType'
+      status_type_id:
+        type: integer
+    type: object
+  model.StaffStatusType:
+    properties:
+      created_at:
+        type: string
+      id:
+        type: integer
+      name:
+        type: string
+      status:
+        $ref: '#/definitions/model.RecordStatus'
+      updated_at:
+        type: string
+    type: object
+  model.Student:
+    properties:
+      address:
+        $ref: '#/definitions/model.Address'
+      address_id:
+        type: integer
+      birth_date:
+        type: string
+      birth_place:
+        type: string
+      created_at:
+        type: string
+      guardian:
+        $ref: '#/definitions/model.Responsible'
+      guardian_id:
+        type: integer
+      id:
+        type: integer
+      image:
+        type: string
+      mother_name:
+        type: string
+      name:
+        type: string
+      phone:
+        type: string
+      registered_on:
+        type: string
+      school_id:
+        type: integer
+      sex:
+        $ref: '#/definitions/model.Sex'
+      status:
+        $ref: '#/definitions/model.StudentStatus'
+      updated_at:
+        type: string
+    type: object
+  model.StudentStatus:
+    enum:
+    - active
+    - graduated
+    - transferred
+    - dropped
+    type: string
+    x-enum-varnames:
+    - StudentStatusActive
+    - StudentStatusGraduated
+    - StudentStatusTransferred
+    - StudentStatusDropped
   model.User:
     properties:
       created_at:
@@ -274,6 +458,24 @@ definitions:
     - starts_on
     - year_name
     type: object
+  service.CreateAddressInput:
+    properties:
+      area:
+        example: Zone 1
+        maxLength: 60
+        type: string
+      district:
+        example: Hodan
+        maxLength: 60
+        minLength: 2
+        type: string
+      village:
+        example: Taleex
+        maxLength: 60
+        type: string
+    required:
+    - district
+    type: object
   service.CreateClassInput:
     properties:
       level_id:
@@ -327,6 +529,28 @@ definitions:
     required:
     - name
     type: object
+  service.CreateResponsibleInput:
+    properties:
+      name:
+        example: Ahmed Ali
+        maxLength: 100
+        minLength: 2
+        type: string
+      phone:
+        example: "+252610000000"
+        maxLength: 20
+        minLength: 5
+        type: string
+      relationship:
+        example: Father
+        maxLength: 40
+        minLength: 2
+        type: string
+    required:
+    - name
+    - phone
+    - relationship
+    type: object
   service.CreateRoleInput:
     properties:
       description:
@@ -375,6 +599,121 @@ definitions:
         example: active
     required:
     - name
+    type: object
+  service.CreateStaffInput:
+    properties:
+      address_id:
+        minimum: 1
+        type: integer
+      decree_id:
+        minimum: 1
+        type: integer
+      description:
+        maxLength: 255
+        type: string
+      hired_date:
+        example: "2026-08-05"
+        type: string
+      job_id:
+        minimum: 1
+        type: integer
+      name:
+        example: Mohamed Ali
+        maxLength: 100
+        minLength: 2
+        type: string
+      phone:
+        maxLength: 20
+        type: string
+      salary:
+        example: 500
+        minimum: 0
+        type: number
+      sex:
+        allOf:
+        - $ref: '#/definitions/model.Sex'
+        enum:
+        - M
+        - F
+        example: M
+    required:
+    - decree_id
+    - hired_date
+    - job_id
+    - name
+    - sex
+    type: object
+  service.CreateStaffStatusInput:
+    properties:
+      description:
+        maxLength: 255
+        type: string
+      status_date:
+        example: "2026-08-05"
+        type: string
+      status_type_id:
+        minimum: 1
+        type: integer
+    required:
+    - status_date
+    - status_type_id
+    type: object
+  service.CreateStudentInput:
+    properties:
+      address_id:
+        minimum: 1
+        type: integer
+      birth_date:
+        example: "2012-04-10"
+        type: string
+      birth_place:
+        example: Mogadishu
+        maxLength: 60
+        type: string
+      guardian_id:
+        minimum: 1
+        type: integer
+      image:
+        maxLength: 255
+        type: string
+      mother_name:
+        example: Hodan Ali
+        maxLength: 100
+        minLength: 2
+        type: string
+      name:
+        example: Amina Ahmed
+        maxLength: 100
+        minLength: 2
+        type: string
+      phone:
+        maxLength: 20
+        type: string
+      registered_on:
+        example: "2026-08-05"
+        type: string
+      sex:
+        allOf:
+        - $ref: '#/definitions/model.Sex'
+        enum:
+        - M
+        - F
+        example: F
+      status:
+        allOf:
+        - $ref: '#/definitions/model.StudentStatus'
+        enum:
+        - active
+        - graduated
+        - transferred
+        - dropped
+        example: active
+    required:
+    - guardian_id
+    - mother_name
+    - name
+    - registered_on
+    - sex
     type: object
   service.CreateUserInput:
     properties:
@@ -468,6 +807,19 @@ definitions:
         maxLength: 20
         type: string
     type: object
+  service.UpdateAddressInput:
+    properties:
+      area:
+        maxLength: 60
+        type: string
+      district:
+        maxLength: 60
+        minLength: 2
+        type: string
+      village:
+        maxLength: 60
+        type: string
+    type: object
   service.UpdateClassInput:
     properties:
       level_id:
@@ -521,6 +873,21 @@ definitions:
         - inactive
         example: active
     type: object
+  service.UpdateResponsibleInput:
+    properties:
+      name:
+        maxLength: 100
+        minLength: 2
+        type: string
+      phone:
+        maxLength: 20
+        minLength: 5
+        type: string
+      relationship:
+        maxLength: 40
+        minLength: 2
+        type: string
+    type: object
   service.UpdateRoleInput:
     properties:
       description:
@@ -566,6 +933,87 @@ definitions:
         - active
         - inactive
         example: active
+    type: object
+  service.UpdateStaffInput:
+    properties:
+      address_id:
+        minimum: 1
+        type: integer
+      clear_address:
+        type: boolean
+      decree_id:
+        minimum: 1
+        type: integer
+      description:
+        maxLength: 255
+        type: string
+      hired_date:
+        type: string
+      job_id:
+        minimum: 1
+        type: integer
+      name:
+        maxLength: 100
+        minLength: 2
+        type: string
+      phone:
+        maxLength: 20
+        type: string
+      salary:
+        minimum: 0
+        type: number
+      sex:
+        allOf:
+        - $ref: '#/definitions/model.Sex'
+        enum:
+        - M
+        - F
+    type: object
+  service.UpdateStudentInput:
+    properties:
+      address_id:
+        minimum: 1
+        type: integer
+      birth_date:
+        type: string
+      birth_place:
+        maxLength: 60
+        type: string
+      clear_address:
+        type: boolean
+      guardian_id:
+        minimum: 1
+        type: integer
+      image:
+        maxLength: 255
+        type: string
+      mother_name:
+        maxLength: 100
+        minLength: 2
+        type: string
+      name:
+        maxLength: 100
+        minLength: 2
+        type: string
+      phone:
+        maxLength: 20
+        type: string
+      registered_on:
+        type: string
+      sex:
+        allOf:
+        - $ref: '#/definitions/model.Sex'
+        enum:
+        - M
+        - F
+      status:
+        allOf:
+        - $ref: '#/definitions/model.StudentStatus'
+        enum:
+        - active
+        - graduated
+        - transferred
+        - dropped
     type: object
   service.UpdateUserInput:
     properties:
@@ -774,6 +1222,139 @@ paths:
       summary: Update an academic year
       tags:
       - foundation
+  /addresses:
+    get:
+      parameters:
+      - description: Required for SuperAdmin
+        in: header
+        name: X-School-ID
+        type: integer
+      - description: District, village, or area search
+        in: query
+        name: search
+        type: string
+      - description: Page size, maximum 100
+        in: query
+        name: limit
+        type: integer
+      - description: Pagination offset
+        in: query
+        name: offset
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/model.Address'
+            type: array
+      security:
+      - BearerAuth: []
+      summary: List addresses for the resolved school
+      tags:
+      - people
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Required for SuperAdmin
+        in: header
+        name: X-School-ID
+        type: integer
+      - description: Address details
+        in: body
+        name: payload
+        required: true
+        schema:
+          $ref: '#/definitions/service.CreateAddressInput'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/model.Address'
+      security:
+      - BearerAuth: []
+      summary: Create an address
+      tags:
+      - people
+  /addresses/{id}:
+    delete:
+      parameters:
+      - description: Required for SuperAdmin
+        in: header
+        name: X-School-ID
+        type: integer
+      - description: Address ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      responses:
+        "204":
+          description: No Content
+      security:
+      - BearerAuth: []
+      summary: Delete an unused address
+      tags:
+      - people
+    get:
+      parameters:
+      - description: Required for SuperAdmin
+        in: header
+        name: X-School-ID
+        type: integer
+      - description: Address ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.Address'
+      security:
+      - BearerAuth: []
+      summary: Get an address by ID
+      tags:
+      - people
+    patch:
+      consumes:
+      - application/json
+      parameters:
+      - description: Required for SuperAdmin
+        in: header
+        name: X-School-ID
+        type: integer
+      - description: Address ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Fields to update
+        in: body
+        name: payload
+        required: true
+        schema:
+          $ref: '#/definitions/service.UpdateAddressInput'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.Address'
+      security:
+      - BearerAuth: []
+      summary: Update an address
+      tags:
+      - people
   /audit-logs:
     get:
       parameters:
@@ -1056,6 +1637,139 @@ paths:
       summary: Update a class
       tags:
       - structure
+  /guardians:
+    get:
+      parameters:
+      - description: Required for SuperAdmin
+        in: header
+        name: X-School-ID
+        type: integer
+      - description: Name or phone search
+        in: query
+        name: search
+        type: string
+      - description: Page size, maximum 100
+        in: query
+        name: limit
+        type: integer
+      - description: Pagination offset
+        in: query
+        name: offset
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/model.Responsible'
+            type: array
+      security:
+      - BearerAuth: []
+      summary: List guardians for the resolved school
+      tags:
+      - people
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Required for SuperAdmin
+        in: header
+        name: X-School-ID
+        type: integer
+      - description: Guardian details
+        in: body
+        name: payload
+        required: true
+        schema:
+          $ref: '#/definitions/service.CreateResponsibleInput'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/model.Responsible'
+      security:
+      - BearerAuth: []
+      summary: Create a guardian
+      tags:
+      - people
+  /guardians/{id}:
+    delete:
+      parameters:
+      - description: Required for SuperAdmin
+        in: header
+        name: X-School-ID
+        type: integer
+      - description: Guardian ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      responses:
+        "204":
+          description: No Content
+      security:
+      - BearerAuth: []
+      summary: Delete an unused guardian
+      tags:
+      - people
+    get:
+      parameters:
+      - description: Required for SuperAdmin
+        in: header
+        name: X-School-ID
+        type: integer
+      - description: Guardian ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.Responsible'
+      security:
+      - BearerAuth: []
+      summary: Get a guardian by ID
+      tags:
+      - people
+    patch:
+      consumes:
+      - application/json
+      parameters:
+      - description: Required for SuperAdmin
+        in: header
+        name: X-School-ID
+        type: integer
+      - description: Guardian ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Fields to update
+        in: body
+        name: payload
+        required: true
+        schema:
+          $ref: '#/definitions/service.UpdateResponsibleInput'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.Responsible'
+      security:
+      - BearerAuth: []
+      summary: Update a guardian
+      tags:
+      - people
   /health:
     get:
       produces:
@@ -1662,6 +2376,333 @@ paths:
       summary: Update a school
       tags:
       - foundation
+  /staff:
+    get:
+      parameters:
+      - description: Required for SuperAdmin
+        in: header
+        name: X-School-ID
+        type: integer
+      - description: Staff name or phone search
+        in: query
+        name: search
+        type: string
+      - description: Page size, maximum 100
+        in: query
+        name: limit
+        type: integer
+      - description: Pagination offset
+        in: query
+        name: offset
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/model.Staff'
+            type: array
+      security:
+      - BearerAuth: []
+      summary: List staff for the resolved school
+      tags:
+      - people
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Required for SuperAdmin
+        in: header
+        name: X-School-ID
+        type: integer
+      - description: Staff details
+        in: body
+        name: payload
+        required: true
+        schema:
+          $ref: '#/definitions/service.CreateStaffInput'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/model.Staff'
+      security:
+      - BearerAuth: []
+      summary: Create a staff member
+      tags:
+      - people
+  /staff/{id}:
+    delete:
+      parameters:
+      - description: Required for SuperAdmin
+        in: header
+        name: X-School-ID
+        type: integer
+      - description: Staff ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      responses:
+        "204":
+          description: No Content
+      security:
+      - BearerAuth: []
+      summary: Archive a staff member by appending Resigned status
+      tags:
+      - people
+    get:
+      parameters:
+      - description: Required for SuperAdmin
+        in: header
+        name: X-School-ID
+        type: integer
+      - description: Staff ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.Staff'
+      security:
+      - BearerAuth: []
+      summary: Get a staff member by ID
+      tags:
+      - people
+    patch:
+      consumes:
+      - application/json
+      parameters:
+      - description: Required for SuperAdmin
+        in: header
+        name: X-School-ID
+        type: integer
+      - description: Staff ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Fields to update
+        in: body
+        name: payload
+        required: true
+        schema:
+          $ref: '#/definitions/service.UpdateStaffInput'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.Staff'
+      security:
+      - BearerAuth: []
+      summary: Update a staff member
+      tags:
+      - people
+  /staff/{id}/statuses:
+    get:
+      parameters:
+      - description: Required for SuperAdmin
+        in: header
+        name: X-School-ID
+        type: integer
+      - description: Staff ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/model.StaffStatus'
+            type: array
+      security:
+      - BearerAuth: []
+      summary: List employment status history for a staff member
+      tags:
+      - people
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Required for SuperAdmin
+        in: header
+        name: X-School-ID
+        type: integer
+      - description: Staff ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Status event
+        in: body
+        name: payload
+        required: true
+        schema:
+          $ref: '#/definitions/service.CreateStaffStatusInput'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/model.StaffStatus'
+      security:
+      - BearerAuth: []
+      summary: Append an employment status event
+      tags:
+      - people
+  /students:
+    get:
+      parameters:
+      - description: Required for SuperAdmin
+        in: header
+        name: X-School-ID
+        type: integer
+      - description: Student, mother, or phone search
+        in: query
+        name: search
+        type: string
+      - description: active, graduated, transferred, or dropped
+        in: query
+        name: status
+        type: string
+      - description: Page size, maximum 100
+        in: query
+        name: limit
+        type: integer
+      - description: Pagination offset
+        in: query
+        name: offset
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/model.Student'
+            type: array
+      security:
+      - BearerAuth: []
+      summary: List students for the resolved school
+      tags:
+      - people
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Required for SuperAdmin
+        in: header
+        name: X-School-ID
+        type: integer
+      - description: Student details
+        in: body
+        name: payload
+        required: true
+        schema:
+          $ref: '#/definitions/service.CreateStudentInput'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/model.Student'
+      security:
+      - BearerAuth: []
+      summary: Create a student
+      tags:
+      - people
+  /students/{id}:
+    delete:
+      parameters:
+      - description: Required for SuperAdmin
+        in: header
+        name: X-School-ID
+        type: integer
+      - description: Student ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      responses:
+        "204":
+          description: No Content
+      security:
+      - BearerAuth: []
+      summary: Archive a student as dropped
+      tags:
+      - people
+    get:
+      parameters:
+      - description: Required for SuperAdmin
+        in: header
+        name: X-School-ID
+        type: integer
+      - description: Student ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.Student'
+      security:
+      - BearerAuth: []
+      summary: Get a student by ID
+      tags:
+      - people
+    patch:
+      consumes:
+      - application/json
+      parameters:
+      - description: Required for SuperAdmin
+        in: header
+        name: X-School-ID
+        type: integer
+      - description: Student ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Fields to update
+        in: body
+        name: payload
+        required: true
+        schema:
+          $ref: '#/definitions/service.UpdateStudentInput'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.Student'
+      security:
+      - BearerAuth: []
+      summary: Update a student
+      tags:
+      - people
   /users:
     get:
       parameters:

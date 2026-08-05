@@ -6,6 +6,7 @@ Implementation documentation:
 
 - [Phase 1 — Foundation](documentation/phase-1-foundation.md)
 - [Phase 2 — School Structure](documentation/phase-2-school-structure.md)
+- [Phase 3 — People](documentation/phase-3-people.md)
 
 ## Project structure
 
@@ -67,6 +68,15 @@ Environment variables are read from the process environment; `.env` is consumed 
 - `GET|PATCH|DELETE /api/v1/levels/:id`
 - `GET|POST /api/v1/classes`
 - `GET|PATCH|DELETE /api/v1/classes/:id`
+- `GET|POST /api/v1/addresses`
+- `GET|PATCH|DELETE /api/v1/addresses/:id`
+- `GET|POST /api/v1/guardians`
+- `GET|PATCH|DELETE /api/v1/guardians/:id`
+- `GET|POST /api/v1/students`
+- `GET|PATCH|DELETE /api/v1/students/:id`
+- `GET|POST /api/v1/staff`
+- `GET|PATCH|DELETE /api/v1/staff/:id`
+- `GET|POST /api/v1/staff/:id/statuses`
 - `GET|POST /api/v1/academic-years`
 - `GET|PATCH|DELETE /api/v1/academic-years/:id`
 - `GET|POST /api/v1/users`
@@ -107,4 +117,6 @@ make test-integration
 make swagger
 make migrate-status
 ```
+
+When `AUTO_MIGRATE=true`, the development database is maintained by GORM and the SQL migration tracker can show migrations as pending. Production must use a clean database, set `AUTO_MIGRATE=false`, and run `make migrate-up` before starting the API. Do not run `migrate-up` against an existing AutoMigrate-created database because the same tables already exist.
 # backend-sms

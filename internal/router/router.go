@@ -18,6 +18,7 @@ func New(
 	auth *handler.AuthHandler,
 	foundation *handler.FoundationHandler,
 	structure *handler.StructureHandler,
+	people *handler.PeopleHandler,
 	health *handler.HealthHandler,
 	jwt *security.JWTManager,
 	users repository.UserRepository,
@@ -69,6 +70,36 @@ func New(
 			classes.POST("", middleware.RequirePermission(model.PermissionManageStructure), structure.CreateClass)
 			classes.PATCH("/:id", middleware.RequirePermission(model.PermissionManageStructure), structure.UpdateClass)
 			classes.DELETE("/:id", middleware.RequirePermission(model.PermissionManageStructure), structure.ArchiveClass)
+
+			addresses := secured.Group("/addresses", middleware.RequireSchool())
+			addresses.GET("", people.ListAddresses)
+			addresses.GET("/:id", people.GetAddress)
+			addresses.POST("", people.CreateAddress)
+			addresses.PATCH("/:id", people.UpdateAddress)
+			addresses.DELETE("/:id", people.DeleteAddress)
+
+			guardians := secured.Group("/guardians", middleware.RequireSchool(), middleware.RequirePermission(model.PermissionManageStudents))
+			guardians.GET("", people.ListGuardians)
+			guardians.GET("/:id", people.GetGuardian)
+			guardians.POST("", people.CreateGuardian)
+			guardians.PATCH("/:id", people.UpdateGuardian)
+			guardians.DELETE("/:id", people.DeleteGuardian)
+
+			students := secured.Group("/students", middleware.RequireSchool(), middleware.RequirePermission(model.PermissionManageStudents))
+			students.GET("", people.ListStudents)
+			students.GET("/:id", people.GetStudent)
+			students.POST("", people.CreateStudent)
+			students.PATCH("/:id", people.UpdateStudent)
+			students.DELETE("/:id", people.ArchiveStudent)
+
+			staff := secured.Group("/staff", middleware.RequireSchool(), middleware.RequirePermission(model.PermissionManageStaff))
+			staff.GET("", people.ListStaff)
+			staff.GET("/:id", people.GetStaff)
+			staff.POST("", people.CreateStaff)
+			staff.PATCH("/:id", people.UpdateStaff)
+			staff.DELETE("/:id", people.ArchiveStaff)
+			staff.GET("/:id/statuses", people.ListStaffStatuses)
+			staff.POST("/:id/statuses", people.CreateStaffStatus)
 
 			schools := secured.Group("/schools", middleware.RequirePermission(model.PermissionManageSchools))
 			schools.GET("", foundation.ListSchools)

@@ -299,3 +299,152 @@ func TestRequestTransactionRollsBackBusinessChangeWhenAuditFails(t *testing.T) {
 		t.Fatalf("school %d remained after audit failure rollback", school.ID)
 	}
 }
+
+func TestPhase3RLSIsolatesPeopleData(t *testing.T) {
+	dsn := os.Getenv("TEST_DATABASE_DSN")
+	if dsn == "" {
+		t.Skip("TEST_DATABASE_DSN is required for the Phase 3 RLS integration test")
+	}
+	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{TranslateError: true})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := MigrateFoundation(db); err != nil {
+		t.Fatal(err)
+	}
+	if err := MigratePhase2(db); err != nil {
+		t.Fatal(err)
+	}
+	if err := MigratePhase3(db); err != nil {
+		t.Fatal(err)
+	}
+	if err := SeedFoundation(context.Background(), db); err != nil {
+		t.Fatal(err)
+	}
+	if err := SeedPhase2(context.Background(), db); err != nil {
+		t.Fatal(err)
+	}
+	if err := SeedPhase3(context.Background(), db); err != nil {
+		t.Fatal(err)
+	}
+	if err := ApplyFoundationRLS(db); err != nil {
+		t.Fatal(err)
+	}
+	if err := ApplyPhase2RLS(db); err != nil {
+		t.Fatal(err)
+	}
+	if err := ApplyPhase3RLS(db); err != nil {
+		t.Fatal(err)
+	}
+
+	suffix := time.Now().UTC().UnixNano()
+	schoolA := model.School{Name: fmt.Sprintf("People RLS A %d", suffix), Status: model.SchoolStatusActive}
+	schoolB := model.School{Name: fmt.Sprintf("People RLS B %d", suffix), Status: model.SchoolStatusActive}
+	if err := db.Create(&schoolA).Error; err != nil {
+		t.Fatal(err)
+	}
+	if err := db.Create(&schoolB).Error; err != nil {
+		t.Fatal(err)
+	}
+	defer db.Delete(&model.School{}, []uint64{schoolA.ID, schoolB.ID})
+
+	addressA := model.Address{SchoolID: schoolA.ID, District: "Hodan A"}
+	addressB := model.Address{SchoolID: schoolB.ID, District: "Hodan B"}
+	if err := db.Create(&addressA).Error; err != nil {
+		t.Fatal(err)
+	}
+	if err := db.Create(&addressB).Error; err != nil {
+		t.Fatal(err)
+	}
+	defer db.Delete(&model.Address{}, []uint64{addressA.ID, addressB.ID})
+	guardianA := model.Responsible{SchoolID: schoolA.ID, Name: "Guardian A", Phone: "+252610000001", Relationship: "Father"}
+	guardianB := model.Responsible{SchoolID: schoolB.ID, Name: "Guardian B", Phone: "+252610000002", Relationship: "Mother"}
+	if err := db.Create(&guardianA).Error; err != nil {
+		t.Fatal(err)
+	}
+	if err := db.Create(&guardianB).Error; err != nil {
+		t.Fatal(err)
+	}
+	defer db.Delete(&model.Responsible{}, []uint64{guardianA.ID, guardianB.ID})
+	today := time.Now().UTC().Truncate(24 * time.Hour)
+	studentA := model.Student{SchoolID: schoolA.ID, Name: "Student A", MotherName: "Mother A", Sex: model.SexFemale, AddressID: &addressA.ID, ResponsibleID: guardianA.ID, RegisteredOn: today, Status: model.StudentStatusActive}
+	studentB := model.Student{SchoolID: schoolB.ID, Name: "Student B", MotherName: "Mother B", Sex: model.SexMale, AddressID: &addressB.ID, ResponsibleID: guardianB.ID, RegisteredOn: today, Status: model.StudentStatusActive}
+	if err := db.Create(&studentA).Error; err != nil {
+		t.Fatal(err)
+	}
+	if err := db.Create(&studentB).Error; err != nil {
+		t.Fatal(err)
+	}
+	defer db.Delete(&model.Student{}, []uint64{studentA.ID, studentB.ID})
+
+	var job model.Job
+	var decree model.Decree
+	var activeStatus model.StaffStatusType
+	if err := db.Where("LOWER(job_name) = 'teacher'").First(&job).Error; err != nil {
+		t.Fatal(err)
+	}
+	if err := db.Where("LOWER(dec_name) = 'permanent'").First(&decree).Error; err != nil {
+		t.Fatal(err)
+	}
+	if err := db.Where("LOWER(sst_name) = 'active'").First(&activeStatus).Error; err != nil {
+		t.Fatal(err)
+	}
+	staffA := model.Staff{SchoolID: schoolA.ID, Name: "Staff A", Sex: model.SexMale, AddressID: &addressA.ID, JobID: job.ID, DecreeID: decree.ID, Salary: 500, HiredDate: today}
+	staffB := model.Staff{SchoolID: schoolB.ID, Name: "Staff B", Sex: model.SexFemale, AddressID: &addressB.ID, JobID: job.ID, DecreeID: decree.ID, Salary: 500, HiredDate: today}
+	if err := db.Create(&staffA).Error; err != nil {
+		t.Fatal(err)
+	}
+	if err := db.Create(&staffB).Error; err != nil {
+		t.Fatal(err)
+	}
+	defer db.Delete(&model.Staff{}, []uint64{staffA.ID, staffB.ID})
+	statusA := model.StaffStatus{SchoolID: schoolA.ID, StaffID: staffA.ID, StaffStatusTypeID: activeStatus.ID, StatusDate: today}
+	statusB := model.StaffStatus{SchoolID: schoolB.ID, StaffID: staffB.ID, StaffStatusTypeID: activeStatus.ID, StatusDate: today}
+	if err := db.Create(&statusA).Error; err != nil {
+		t.Fatal(err)
+	}
+	if err := db.Create(&statusB).Error; err != nil {
+		t.Fatal(err)
+	}
+	defer db.Delete(&model.StaffStatus{}, []uint64{statusA.ID, statusB.ID})
+
+	principalA := authz.Principal{UserID: 910001, SchoolID: &schoolA.ID, Role: model.RoleSchoolAdmin}
+	ctxA, txA, err := BeginRequest(context.Background(), db, SecurityScope{Principal: principalA})
+	if err != nil {
+		t.Fatal(err)
+	}
+	assertOnlyTenantRow := func(table, idColumn string, ids []uint64, expected uint64) {
+		t.Helper()
+		var visible []uint64
+		if err := FromContext(ctxA, db).Table(table).Where(idColumn+" IN ?", ids).Pluck(idColumn, &visible).Error; err != nil {
+			t.Fatal(err)
+		}
+		if len(visible) != 1 || visible[0] != expected {
+			t.Fatalf("%s visible IDs = %v, want [%d]", table, visible, expected)
+		}
+	}
+	assertOnlyTenantRow("addresses", "add_no", []uint64{addressA.ID, addressB.ID}, addressA.ID)
+	assertOnlyTenantRow("responsibles", "res_no", []uint64{guardianA.ID, guardianB.ID}, guardianA.ID)
+	assertOnlyTenantRow("students", "std_id", []uint64{studentA.ID, studentB.ID}, studentA.ID)
+	assertOnlyTenantRow("staff", "stf_no", []uint64{staffA.ID, staffB.ID}, staffA.ID)
+	assertOnlyTenantRow("staff_status", "ss_no", []uint64{statusA.ID, statusB.ID}, statusA.ID)
+	forbiddenAddress := model.Address{SchoolID: schoolB.ID, District: "Forbidden"}
+	if err := FromContext(ctxA, db).Create(&forbiddenAddress).Error; err == nil {
+		t.Fatal("school A inserted a school B address")
+	}
+	txA.Rollback()
+
+	super := authz.Principal{UserID: 910000, Role: model.RoleSuperAdmin}
+	ctxSuper, txSuper, err := BeginRequest(context.Background(), db, SecurityScope{Principal: super})
+	if err != nil {
+		t.Fatal(err)
+	}
+	var count int64
+	if err := FromContext(ctxSuper, db).Model(&model.Student{}).Where("std_id IN ?", []uint64{studentA.ID, studentB.ID}).Count(&count).Error; err != nil {
+		t.Fatal(err)
+	}
+	if count != 2 {
+		t.Fatalf("SuperAdmin saw %d Phase 3 students; want 2", count)
+	}
+	txSuper.Rollback()
+}

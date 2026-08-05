@@ -3,21 +3,21 @@ package model
 import "time"
 
 type Job struct {
-	ID        uint64       `gorm:"column:job_no;primaryKey"`
-	Name      string       `gorm:"column:job_name;size:60;not null"`
-	Status    RecordStatus `gorm:"type:varchar(20);not null;default:active;check:ck_jobs_status,status IN ('active','inactive')"`
-	CreatedAt time.Time
-	UpdatedAt time.Time
+	ID        uint64       `gorm:"column:job_no;primaryKey" json:"id"`
+	Name      string       `gorm:"column:job_name;size:60;not null" json:"name"`
+	Status    RecordStatus `gorm:"type:varchar(20);not null;default:active;check:ck_jobs_status,status IN ('active','inactive')" json:"status"`
+	CreatedAt time.Time    `json:"created_at"`
+	UpdatedAt time.Time    `json:"updated_at"`
 }
 
 func (Job) TableName() string { return "jobs" }
 
 type Decree struct {
-	ID        uint64       `gorm:"column:dec_no;primaryKey"`
-	Name      string       `gorm:"column:dec_name;size:60;not null"`
-	Status    RecordStatus `gorm:"type:varchar(20);not null;default:active;check:ck_decrees_status,status IN ('active','inactive')"`
-	CreatedAt time.Time
-	UpdatedAt time.Time
+	ID        uint64       `gorm:"column:dec_no;primaryKey" json:"id"`
+	Name      string       `gorm:"column:dec_name;size:60;not null" json:"name"`
+	Status    RecordStatus `gorm:"type:varchar(20);not null;default:active;check:ck_decrees_status,status IN ('active','inactive')" json:"status"`
+	CreatedAt time.Time    `json:"created_at"`
+	UpdatedAt time.Time    `json:"updated_at"`
 }
 
 func (Decree) TableName() string { return "decrees" }
@@ -73,11 +73,11 @@ type AttendanceCondition struct {
 func (AttendanceCondition) TableName() string { return "att_conditions" }
 
 type StaffStatusType struct {
-	ID        uint64       `gorm:"column:sst_no;primaryKey"`
-	Name      string       `gorm:"column:sst_name;size:40;not null"`
-	Status    RecordStatus `gorm:"type:varchar(20);not null;default:active;check:ck_staff_status_types_status,status IN ('active','inactive')"`
-	CreatedAt time.Time
-	UpdatedAt time.Time
+	ID        uint64       `gorm:"column:sst_no;primaryKey" json:"id"`
+	Name      string       `gorm:"column:sst_name;size:40;not null" json:"name"`
+	Status    RecordStatus `gorm:"type:varchar(20);not null;default:active;check:ck_staff_status_types_status,status IN ('active','inactive')" json:"status"`
+	CreatedAt time.Time    `json:"created_at"`
+	UpdatedAt time.Time    `json:"updated_at"`
 }
 
 func (StaffStatusType) TableName() string { return "staff_status_types" }

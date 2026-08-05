@@ -283,6 +283,220 @@
                 }
             }
         },
+        "/addresses": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "people"
+                ],
+                "summary": "List addresses for the resolved school",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Required for SuperAdmin",
+                        "name": "X-School-ID",
+                        "in": "header"
+                    },
+                    {
+                        "type": "string",
+                        "description": "District, village, or area search",
+                        "name": "search",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Page size, maximum 100",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Pagination offset",
+                        "name": "offset",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/model.Address"
+                            }
+                        }
+                    }
+                }
+            },
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "people"
+                ],
+                "summary": "Create an address",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Required for SuperAdmin",
+                        "name": "X-School-ID",
+                        "in": "header"
+                    },
+                    {
+                        "description": "Address details",
+                        "name": "payload",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/service.CreateAddressInput"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/model.Address"
+                        }
+                    }
+                }
+            }
+        },
+        "/addresses/{id}": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "people"
+                ],
+                "summary": "Get an address by ID",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Required for SuperAdmin",
+                        "name": "X-School-ID",
+                        "in": "header"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Address ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/model.Address"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "tags": [
+                    "people"
+                ],
+                "summary": "Delete an unused address",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Required for SuperAdmin",
+                        "name": "X-School-ID",
+                        "in": "header"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Address ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "No Content"
+                    }
+                }
+            },
+            "patch": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "people"
+                ],
+                "summary": "Update an address",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Required for SuperAdmin",
+                        "name": "X-School-ID",
+                        "in": "header"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Address ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Fields to update",
+                        "name": "payload",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/service.UpdateAddressInput"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/model.Address"
+                        }
+                    }
+                }
+            }
+        },
         "/audit-logs": {
             "get": {
                 "security": [
@@ -737,6 +951,220 @@
                         "description": "OK",
                         "schema": {
                             "$ref": "#/definitions/model.Class"
+                        }
+                    }
+                }
+            }
+        },
+        "/guardians": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "people"
+                ],
+                "summary": "List guardians for the resolved school",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Required for SuperAdmin",
+                        "name": "X-School-ID",
+                        "in": "header"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Name or phone search",
+                        "name": "search",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Page size, maximum 100",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Pagination offset",
+                        "name": "offset",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/model.Responsible"
+                            }
+                        }
+                    }
+                }
+            },
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "people"
+                ],
+                "summary": "Create a guardian",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Required for SuperAdmin",
+                        "name": "X-School-ID",
+                        "in": "header"
+                    },
+                    {
+                        "description": "Guardian details",
+                        "name": "payload",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/service.CreateResponsibleInput"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/model.Responsible"
+                        }
+                    }
+                }
+            }
+        },
+        "/guardians/{id}": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "people"
+                ],
+                "summary": "Get a guardian by ID",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Required for SuperAdmin",
+                        "name": "X-School-ID",
+                        "in": "header"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Guardian ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/model.Responsible"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "tags": [
+                    "people"
+                ],
+                "summary": "Delete an unused guardian",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Required for SuperAdmin",
+                        "name": "X-School-ID",
+                        "in": "header"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Guardian ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "No Content"
+                    }
+                }
+            },
+            "patch": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "people"
+                ],
+                "summary": "Update a guardian",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Required for SuperAdmin",
+                        "name": "X-School-ID",
+                        "in": "header"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Guardian ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Fields to update",
+                        "name": "payload",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/service.UpdateResponsibleInput"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/model.Responsible"
                         }
                     }
                 }
@@ -1704,6 +2132,531 @@
                 }
             }
         },
+        "/staff": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "people"
+                ],
+                "summary": "List staff for the resolved school",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Required for SuperAdmin",
+                        "name": "X-School-ID",
+                        "in": "header"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Staff name or phone search",
+                        "name": "search",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Page size, maximum 100",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Pagination offset",
+                        "name": "offset",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/model.Staff"
+                            }
+                        }
+                    }
+                }
+            },
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "people"
+                ],
+                "summary": "Create a staff member",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Required for SuperAdmin",
+                        "name": "X-School-ID",
+                        "in": "header"
+                    },
+                    {
+                        "description": "Staff details",
+                        "name": "payload",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/service.CreateStaffInput"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/model.Staff"
+                        }
+                    }
+                }
+            }
+        },
+        "/staff/{id}": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "people"
+                ],
+                "summary": "Get a staff member by ID",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Required for SuperAdmin",
+                        "name": "X-School-ID",
+                        "in": "header"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Staff ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/model.Staff"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "tags": [
+                    "people"
+                ],
+                "summary": "Archive a staff member by appending Resigned status",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Required for SuperAdmin",
+                        "name": "X-School-ID",
+                        "in": "header"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Staff ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "No Content"
+                    }
+                }
+            },
+            "patch": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "people"
+                ],
+                "summary": "Update a staff member",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Required for SuperAdmin",
+                        "name": "X-School-ID",
+                        "in": "header"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Staff ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Fields to update",
+                        "name": "payload",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/service.UpdateStaffInput"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/model.Staff"
+                        }
+                    }
+                }
+            }
+        },
+        "/staff/{id}/statuses": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "people"
+                ],
+                "summary": "List employment status history for a staff member",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Required for SuperAdmin",
+                        "name": "X-School-ID",
+                        "in": "header"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Staff ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/model.StaffStatus"
+                            }
+                        }
+                    }
+                }
+            },
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "people"
+                ],
+                "summary": "Append an employment status event",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Required for SuperAdmin",
+                        "name": "X-School-ID",
+                        "in": "header"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Staff ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Status event",
+                        "name": "payload",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/service.CreateStaffStatusInput"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/model.StaffStatus"
+                        }
+                    }
+                }
+            }
+        },
+        "/students": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "people"
+                ],
+                "summary": "List students for the resolved school",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Required for SuperAdmin",
+                        "name": "X-School-ID",
+                        "in": "header"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Student, mother, or phone search",
+                        "name": "search",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "active, graduated, transferred, or dropped",
+                        "name": "status",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Page size, maximum 100",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Pagination offset",
+                        "name": "offset",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/model.Student"
+                            }
+                        }
+                    }
+                }
+            },
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "people"
+                ],
+                "summary": "Create a student",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Required for SuperAdmin",
+                        "name": "X-School-ID",
+                        "in": "header"
+                    },
+                    {
+                        "description": "Student details",
+                        "name": "payload",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/service.CreateStudentInput"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/model.Student"
+                        }
+                    }
+                }
+            }
+        },
+        "/students/{id}": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "people"
+                ],
+                "summary": "Get a student by ID",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Required for SuperAdmin",
+                        "name": "X-School-ID",
+                        "in": "header"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Student ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/model.Student"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "tags": [
+                    "people"
+                ],
+                "summary": "Archive a student as dropped",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Required for SuperAdmin",
+                        "name": "X-School-ID",
+                        "in": "header"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Student ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "No Content"
+                    }
+                }
+            },
+            "patch": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "people"
+                ],
+                "summary": "Update a student",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Required for SuperAdmin",
+                        "name": "X-School-ID",
+                        "in": "header"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Student ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Fields to update",
+                        "name": "payload",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/service.UpdateStudentInput"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/model.Student"
+                        }
+                    }
+                }
+            }
+        },
         "/users": {
             "get": {
                 "security": [
@@ -2094,6 +3047,32 @@
                 }
             }
         },
+        "model.Address": {
+            "type": "object",
+            "properties": {
+                "area": {
+                    "type": "string"
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "district": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "school_id": {
+                    "type": "integer"
+                },
+                "updated_at": {
+                    "type": "string"
+                },
+                "village": {
+                    "type": "string"
+                }
+            }
+        },
         "model.AuditLog": {
             "type": "object",
             "properties": {
@@ -2146,6 +3125,46 @@
                 },
                 "school_id": {
                     "type": "integer"
+                },
+                "status": {
+                    "$ref": "#/definitions/model.RecordStatus"
+                },
+                "updated_at": {
+                    "type": "string"
+                }
+            }
+        },
+        "model.Decree": {
+            "type": "object",
+            "properties": {
+                "created_at": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "status": {
+                    "$ref": "#/definitions/model.RecordStatus"
+                },
+                "updated_at": {
+                    "type": "string"
+                }
+            }
+        },
+        "model.Job": {
+            "type": "object",
+            "properties": {
+                "created_at": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "name": {
+                    "type": "string"
                 },
                 "status": {
                     "$ref": "#/definitions/model.RecordStatus"
@@ -2232,6 +3251,32 @@
                 "RecordStatusInactive"
             ]
         },
+        "model.Responsible": {
+            "type": "object",
+            "properties": {
+                "created_at": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "phone": {
+                    "type": "string"
+                },
+                "relationship": {
+                    "type": "string"
+                },
+                "school_id": {
+                    "type": "integer"
+                },
+                "updated_at": {
+                    "type": "string"
+                }
+            }
+        },
         "model.Role": {
             "type": "object",
             "properties": {
@@ -2316,6 +3361,190 @@
             "x-enum-varnames": [
                 "SchoolStatusActive",
                 "SchoolStatusInactive"
+            ]
+        },
+        "model.Sex": {
+            "type": "string",
+            "enum": [
+                "M",
+                "F"
+            ],
+            "x-enum-varnames": [
+                "SexMale",
+                "SexFemale"
+            ]
+        },
+        "model.Staff": {
+            "type": "object",
+            "properties": {
+                "address": {
+                    "$ref": "#/definitions/model.Address"
+                },
+                "address_id": {
+                    "type": "integer"
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "decree": {
+                    "$ref": "#/definitions/model.Decree"
+                },
+                "decree_id": {
+                    "type": "integer"
+                },
+                "description": {
+                    "type": "string"
+                },
+                "hired_date": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "job": {
+                    "$ref": "#/definitions/model.Job"
+                },
+                "job_id": {
+                    "type": "integer"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "phone": {
+                    "type": "string"
+                },
+                "salary": {
+                    "type": "number"
+                },
+                "school_id": {
+                    "type": "integer"
+                },
+                "sex": {
+                    "$ref": "#/definitions/model.Sex"
+                },
+                "updated_at": {
+                    "type": "string"
+                }
+            }
+        },
+        "model.StaffStatus": {
+            "type": "object",
+            "properties": {
+                "created_at": {
+                    "type": "string"
+                },
+                "description": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "school_id": {
+                    "type": "integer"
+                },
+                "staff_id": {
+                    "type": "integer"
+                },
+                "status_date": {
+                    "type": "string"
+                },
+                "status_type": {
+                    "$ref": "#/definitions/model.StaffStatusType"
+                },
+                "status_type_id": {
+                    "type": "integer"
+                }
+            }
+        },
+        "model.StaffStatusType": {
+            "type": "object",
+            "properties": {
+                "created_at": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "status": {
+                    "$ref": "#/definitions/model.RecordStatus"
+                },
+                "updated_at": {
+                    "type": "string"
+                }
+            }
+        },
+        "model.Student": {
+            "type": "object",
+            "properties": {
+                "address": {
+                    "$ref": "#/definitions/model.Address"
+                },
+                "address_id": {
+                    "type": "integer"
+                },
+                "birth_date": {
+                    "type": "string"
+                },
+                "birth_place": {
+                    "type": "string"
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "guardian": {
+                    "$ref": "#/definitions/model.Responsible"
+                },
+                "guardian_id": {
+                    "type": "integer"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "image": {
+                    "type": "string"
+                },
+                "mother_name": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "phone": {
+                    "type": "string"
+                },
+                "registered_on": {
+                    "type": "string"
+                },
+                "school_id": {
+                    "type": "integer"
+                },
+                "sex": {
+                    "$ref": "#/definitions/model.Sex"
+                },
+                "status": {
+                    "$ref": "#/definitions/model.StudentStatus"
+                },
+                "updated_at": {
+                    "type": "string"
+                }
+            }
+        },
+        "model.StudentStatus": {
+            "type": "string",
+            "enum": [
+                "active",
+                "graduated",
+                "transferred",
+                "dropped"
+            ],
+            "x-enum-varnames": [
+                "StudentStatusActive",
+                "StudentStatusGraduated",
+                "StudentStatusTransferred",
+                "StudentStatusDropped"
             ]
         },
         "model.User": {
@@ -2437,6 +3666,30 @@
                 }
             }
         },
+        "service.CreateAddressInput": {
+            "type": "object",
+            "required": [
+                "district"
+            ],
+            "properties": {
+                "area": {
+                    "type": "string",
+                    "maxLength": 60,
+                    "example": "Zone 1"
+                },
+                "district": {
+                    "type": "string",
+                    "maxLength": 60,
+                    "minLength": 2,
+                    "example": "Hodan"
+                },
+                "village": {
+                    "type": "string",
+                    "maxLength": 60,
+                    "example": "Taleex"
+                }
+            }
+        },
         "service.CreateClassInput": {
             "type": "object",
             "required": [
@@ -2514,6 +3767,34 @@
                 }
             }
         },
+        "service.CreateResponsibleInput": {
+            "type": "object",
+            "required": [
+                "name",
+                "phone",
+                "relationship"
+            ],
+            "properties": {
+                "name": {
+                    "type": "string",
+                    "maxLength": 100,
+                    "minLength": 2,
+                    "example": "Ahmed Ali"
+                },
+                "phone": {
+                    "type": "string",
+                    "maxLength": 20,
+                    "minLength": 5,
+                    "example": "+252610000000"
+                },
+                "relationship": {
+                    "type": "string",
+                    "maxLength": 40,
+                    "minLength": 2,
+                    "example": "Father"
+                }
+            }
+        },
         "service.CreateRoleInput": {
             "type": "object",
             "required": [
@@ -2577,6 +3858,165 @@
                     "allOf": [
                         {
                             "$ref": "#/definitions/model.SchoolStatus"
+                        }
+                    ],
+                    "example": "active"
+                }
+            }
+        },
+        "service.CreateStaffInput": {
+            "type": "object",
+            "required": [
+                "decree_id",
+                "hired_date",
+                "job_id",
+                "name",
+                "sex"
+            ],
+            "properties": {
+                "address_id": {
+                    "type": "integer",
+                    "minimum": 1
+                },
+                "decree_id": {
+                    "type": "integer",
+                    "minimum": 1
+                },
+                "description": {
+                    "type": "string",
+                    "maxLength": 255
+                },
+                "hired_date": {
+                    "type": "string",
+                    "example": "2026-08-05"
+                },
+                "job_id": {
+                    "type": "integer",
+                    "minimum": 1
+                },
+                "name": {
+                    "type": "string",
+                    "maxLength": 100,
+                    "minLength": 2,
+                    "example": "Mohamed Ali"
+                },
+                "phone": {
+                    "type": "string",
+                    "maxLength": 20
+                },
+                "salary": {
+                    "type": "number",
+                    "minimum": 0,
+                    "example": 500
+                },
+                "sex": {
+                    "enum": [
+                        "M",
+                        "F"
+                    ],
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/model.Sex"
+                        }
+                    ],
+                    "example": "M"
+                }
+            }
+        },
+        "service.CreateStaffStatusInput": {
+            "type": "object",
+            "required": [
+                "status_date",
+                "status_type_id"
+            ],
+            "properties": {
+                "description": {
+                    "type": "string",
+                    "maxLength": 255
+                },
+                "status_date": {
+                    "type": "string",
+                    "example": "2026-08-05"
+                },
+                "status_type_id": {
+                    "type": "integer",
+                    "minimum": 1
+                }
+            }
+        },
+        "service.CreateStudentInput": {
+            "type": "object",
+            "required": [
+                "guardian_id",
+                "mother_name",
+                "name",
+                "registered_on",
+                "sex"
+            ],
+            "properties": {
+                "address_id": {
+                    "type": "integer",
+                    "minimum": 1
+                },
+                "birth_date": {
+                    "type": "string",
+                    "example": "2012-04-10"
+                },
+                "birth_place": {
+                    "type": "string",
+                    "maxLength": 60,
+                    "example": "Mogadishu"
+                },
+                "guardian_id": {
+                    "type": "integer",
+                    "minimum": 1
+                },
+                "image": {
+                    "type": "string",
+                    "maxLength": 255
+                },
+                "mother_name": {
+                    "type": "string",
+                    "maxLength": 100,
+                    "minLength": 2,
+                    "example": "Hodan Ali"
+                },
+                "name": {
+                    "type": "string",
+                    "maxLength": 100,
+                    "minLength": 2,
+                    "example": "Amina Ahmed"
+                },
+                "phone": {
+                    "type": "string",
+                    "maxLength": 20
+                },
+                "registered_on": {
+                    "type": "string",
+                    "example": "2026-08-05"
+                },
+                "sex": {
+                    "enum": [
+                        "M",
+                        "F"
+                    ],
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/model.Sex"
+                        }
+                    ],
+                    "example": "F"
+                },
+                "status": {
+                    "enum": [
+                        "active",
+                        "graduated",
+                        "transferred",
+                        "dropped"
+                    ],
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/model.StudentStatus"
                         }
                     ],
                     "example": "active"
@@ -2714,6 +4154,24 @@
                 }
             }
         },
+        "service.UpdateAddressInput": {
+            "type": "object",
+            "properties": {
+                "area": {
+                    "type": "string",
+                    "maxLength": 60
+                },
+                "district": {
+                    "type": "string",
+                    "maxLength": 60,
+                    "minLength": 2
+                },
+                "village": {
+                    "type": "string",
+                    "maxLength": 60
+                }
+            }
+        },
         "service.UpdateClassInput": {
             "type": "object",
             "properties": {
@@ -2793,6 +4251,26 @@
                 }
             }
         },
+        "service.UpdateResponsibleInput": {
+            "type": "object",
+            "properties": {
+                "name": {
+                    "type": "string",
+                    "maxLength": 100,
+                    "minLength": 2
+                },
+                "phone": {
+                    "type": "string",
+                    "maxLength": 20,
+                    "minLength": 5
+                },
+                "relationship": {
+                    "type": "string",
+                    "maxLength": 40,
+                    "minLength": 2
+                }
+            }
+        },
         "service.UpdateRoleInput": {
             "type": "object",
             "properties": {
@@ -2857,6 +4335,125 @@
                         }
                     ],
                     "example": "active"
+                }
+            }
+        },
+        "service.UpdateStaffInput": {
+            "type": "object",
+            "properties": {
+                "address_id": {
+                    "type": "integer",
+                    "minimum": 1
+                },
+                "clear_address": {
+                    "type": "boolean"
+                },
+                "decree_id": {
+                    "type": "integer",
+                    "minimum": 1
+                },
+                "description": {
+                    "type": "string",
+                    "maxLength": 255
+                },
+                "hired_date": {
+                    "type": "string"
+                },
+                "job_id": {
+                    "type": "integer",
+                    "minimum": 1
+                },
+                "name": {
+                    "type": "string",
+                    "maxLength": 100,
+                    "minLength": 2
+                },
+                "phone": {
+                    "type": "string",
+                    "maxLength": 20
+                },
+                "salary": {
+                    "type": "number",
+                    "minimum": 0
+                },
+                "sex": {
+                    "enum": [
+                        "M",
+                        "F"
+                    ],
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/model.Sex"
+                        }
+                    ]
+                }
+            }
+        },
+        "service.UpdateStudentInput": {
+            "type": "object",
+            "properties": {
+                "address_id": {
+                    "type": "integer",
+                    "minimum": 1
+                },
+                "birth_date": {
+                    "type": "string"
+                },
+                "birth_place": {
+                    "type": "string",
+                    "maxLength": 60
+                },
+                "clear_address": {
+                    "type": "boolean"
+                },
+                "guardian_id": {
+                    "type": "integer",
+                    "minimum": 1
+                },
+                "image": {
+                    "type": "string",
+                    "maxLength": 255
+                },
+                "mother_name": {
+                    "type": "string",
+                    "maxLength": 100,
+                    "minLength": 2
+                },
+                "name": {
+                    "type": "string",
+                    "maxLength": 100,
+                    "minLength": 2
+                },
+                "phone": {
+                    "type": "string",
+                    "maxLength": 20
+                },
+                "registered_on": {
+                    "type": "string"
+                },
+                "sex": {
+                    "enum": [
+                        "M",
+                        "F"
+                    ],
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/model.Sex"
+                        }
+                    ]
+                },
+                "status": {
+                    "enum": [
+                        "active",
+                        "graduated",
+                        "transferred",
+                        "dropped"
+                    ],
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/model.StudentStatus"
+                        }
+                    ]
                 }
             }
         },

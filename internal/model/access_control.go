@@ -25,6 +25,8 @@ const (
 	PermissionViewAuditLogs       = "view_audit_logs"
 	PermissionManageLookups       = "manage_lookups"
 	PermissionManageStructure     = "manage_school_structure"
+	PermissionManageStudents      = "manage_students"
+	PermissionManageStaff         = "manage_staff"
 )
 
 type Role struct {

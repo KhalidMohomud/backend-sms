@@ -86,6 +86,9 @@ func createSuperAdmin(ctx context.Context, cfg config.Config, db *gorm.DB, args 
 		if err := database.MigratePhase2(db); err != nil {
 			return fmt.Errorf("migrate Phase 2: %w", err)
 		}
+		if err := database.MigratePhase3(db); err != nil {
+			return fmt.Errorf("migrate Phase 3: %w", err)
+		}
 	}
 	if err := database.SeedFoundation(ctx, db); err != nil {
 		return err
@@ -93,10 +96,16 @@ func createSuperAdmin(ctx context.Context, cfg config.Config, db *gorm.DB, args 
 	if err := database.SeedPhase2(ctx, db); err != nil {
 		return err
 	}
+	if err := database.SeedPhase3(ctx, db); err != nil {
+		return err
+	}
 	if err := database.ApplyFoundationRLS(db); err != nil {
 		return err
 	}
 	if err := database.ApplyPhase2RLS(db); err != nil {
+		return err
+	}
+	if err := database.ApplyPhase3RLS(db); err != nil {
 		return err
 	}
 	requestContext, tx, err := database.BeginRequest(ctx, db, database.SecurityScope{Principal: authz.Principal{Role: model.RoleSuperAdmin}})
@@ -143,6 +152,7 @@ func verifyFoundation(ctx context.Context, db *gorm.DB) error {
 		"schools", "academic_years", "roles", "permissions", "role_permissions", "users", "audit_logs",
 		"jobs", "decrees", "subjects", "exams", "periods", "attendance_status", "att_conditions",
 		"staff_status_types", "amount_types", "expense_types", "levels", "classes",
+		"addresses", "responsibles", "students", "staff", "staff_status",
 	}
 	for _, table := range requiredTables {
 		if !db.Migrator().HasTable(table) {
@@ -162,7 +172,7 @@ func verifyFoundation(ctx context.Context, db *gorm.DB) error {
 	for _, role := range roles {
 		permissionCounts[role.Name] = len(role.Permissions)
 	}
-	if len(roles) < 5 || len(permissions) != 7 || permissionCounts["SuperAdmin"] != 7 || permissionCounts["SchoolAdmin"] != 4 {
+	if len(roles) < 5 || len(permissions) != 9 || permissionCounts["SuperAdmin"] != 9 || permissionCounts["SchoolAdmin"] != 6 || permissionCounts["Registrar"] < 1 {
 		return fmt.Errorf("unexpected access-control seed: roles=%d permissions=%d assignments=%v", len(roles), len(permissions), permissionCounts)
 	}
 	var triggerCount int64
@@ -177,11 +187,12 @@ func verifyFoundation(ctx context.Context, db *gorm.DB) error {
 			'schools','academic_years','roles','permissions','role_permissions','users','audit_logs',
 			'jobs','decrees','subjects','exams','periods','attendance_status','att_conditions',
 			'staff_status_types','amount_types','expense_types','levels','classes'
+			,'addresses','responsibles','students','staff','staff_status'
 		) AND relrowsecurity`).Scan(&rlsTableCount).Error
 	if err != nil || rlsTableCount != int64(len(requiredTables)) {
 		return fmt.Errorf("RLS is not enabled on all foundation tables: enabled=%d", rlsTableCount)
 	}
-	fmt.Printf("Phase 1 and Phase 2 verified: %d tables, %d roles, %d permissions, audit trigger active, RLS active.\n", len(requiredTables), len(roles), len(permissions))
+	fmt.Printf("Phase 1 through Phase 3 verified: %d tables, %d roles, %d permissions, audit trigger active, RLS active.\n", len(requiredTables), len(roles), len(permissions))
 	return nil
 }
 
