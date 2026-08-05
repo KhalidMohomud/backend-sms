@@ -48,7 +48,7 @@ type JWTConfig struct {
 }
 
 func Load() (Config, error) {
-	expiration, err := time.ParseDuration(getEnv("JWT_EXPIRATION", "24h"))
+	expiration, err := time.ParseDuration(getEnv("JWT_EXPIRATION", "15m"))
 	if err != nil {
 		return Config{}, fmt.Errorf("parse JWT_EXPIRATION: %w", err)
 	}

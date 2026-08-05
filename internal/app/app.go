@@ -56,6 +56,10 @@ func New(ctx context.Context, cfg config.Config) (*App, error) {
 		closePostgres(db)
 		return nil, err
 	}
+	if err := database.ApplyFoundationRLS(db); err != nil {
+		closePostgres(db)
+		return nil, err
+	}
 
 	redisClient, err := database.NewRedis(ctx, cfg.Redis)
 	if err != nil {
@@ -64,11 +68,12 @@ func New(ctx context.Context, cfg config.Config) (*App, error) {
 	}
 
 	jwtManager := security.NewJWTManager(cfg.JWT)
+	sessionStore := security.NewSessionStore(redisClient)
 	userRepository := repository.NewUserRepository(db)
 	foundationRepository := repository.NewFoundationRepository(db)
 	auditRepository := repository.NewAuditRepository(db)
 	auditWriter := service.NewAuditWriter(auditRepository)
-	authService := service.NewAuthService(userRepository, jwtManager, auditWriter)
+	authService := service.NewAuthService(userRepository, jwtManager, auditWriter, sessionStore)
 	foundationService := service.NewFoundationService(foundationRepository, userRepository, auditRepository, auditWriter)
 	if cfg.App.Environment == "production" {
 		gin.SetMode(gin.ReleaseMode)
@@ -79,6 +84,8 @@ func New(ctx context.Context, cfg config.Config) (*App, error) {
 		handler.NewHealthHandler(db, redisClient),
 		jwtManager,
 		userRepository,
+		db,
+		sessionStore,
 	)
 
 	return &App{

@@ -10,6 +10,13 @@ const (
 	RoleTeacher     = "Teacher"
 )
 
+type RoleStatus string
+
+const (
+	RoleStatusActive   RoleStatus = "active"
+	RoleStatusInactive RoleStatus = "inactive"
+)
+
 const (
 	PermissionManageSchools       = "manage_schools"
 	PermissionManageAcademicYears = "manage_academic_years"
@@ -22,6 +29,8 @@ type Role struct {
 	ID          uint64       `gorm:"column:role_no;primaryKey" json:"id"`
 	Name        string       `gorm:"column:role_name;size:40;not null;uniqueIndex" json:"name"`
 	Description string       `gorm:"size:255" json:"description,omitempty"`
+	Status      RoleStatus   `gorm:"type:varchar(20);not null;default:active;check:ck_roles_status,status IN ('active','inactive')" json:"status"`
+	IsSystem    bool         `gorm:"not null;default:false" json:"is_system"`
 	Permissions []Permission `gorm:"many2many:role_permissions;joinForeignKey:RoleNo;joinReferences:PermNo" json:"permissions,omitempty"`
 	CreatedAt   time.Time    `gorm:"not null" json:"created_at"`
 	UpdatedAt   time.Time    `gorm:"not null" json:"updated_at"`

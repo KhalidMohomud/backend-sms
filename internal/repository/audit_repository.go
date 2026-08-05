@@ -1,6 +1,7 @@
 package repository
 
 import (
+	"backendapi/internal/database"
 	"backendapi/internal/model"
 	"context"
 
@@ -21,12 +22,12 @@ func NewAuditRepository(db *gorm.DB) AuditRepository {
 }
 
 func (r *auditRepository) Create(ctx context.Context, entry *model.AuditLog) error {
-	return r.db.WithContext(ctx).Create(entry).Error
+	return database.FromContext(ctx, r.db).Create(entry).Error
 }
 
 func (r *auditRepository) List(ctx context.Context, schoolID *uint64, limit, offset int) ([]model.AuditLog, error) {
 	var entries []model.AuditLog
-	query := r.db.WithContext(ctx).Order("log_time DESC").Limit(limit).Offset(offset)
+	query := database.FromContext(ctx, r.db).Order("log_time DESC").Limit(limit).Offset(offset)
 	if schoolID != nil {
 		query = query.Where("sch_no = ?", *schoolID)
 	}

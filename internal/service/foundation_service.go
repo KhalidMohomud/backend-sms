@@ -21,6 +21,7 @@ var (
 	ErrInvalidDate     = errors.New("invalid date range")
 	ErrNoChanges       = errors.New("at least one field must be provided")
 	ErrConflict        = errors.New("record is in use and cannot be deleted")
+	ErrProtectedRecord = errors.New("protected system record cannot be changed")
 )
 
 type CreateSchoolInput struct {
@@ -69,6 +70,22 @@ type UpdateUserInput struct {
 	Username *string `json:"username" binding:"omitempty,min=3,max=50" example:"registrar1"`
 	StaffID  *uint64 `json:"staff_id"`
 	RoleID   *uint64 `json:"role_id" binding:"omitempty,min=1" example:"3"`
+}
+
+type CreateRoleInput struct {
+	Name          string   `json:"name" binding:"required,min=2,max=40" example:"Counselor"`
+	Description   string   `json:"description" binding:"max=255"`
+	PermissionIDs []uint64 `json:"permission_ids"`
+}
+
+type UpdateRoleInput struct {
+	Name        *string           `json:"name" binding:"omitempty,min=2,max=40"`
+	Description *string           `json:"description" binding:"omitempty,max=255"`
+	Status      *model.RoleStatus `json:"status" binding:"omitempty,oneof=active inactive"`
+}
+
+type ReplaceRolePermissionsInput struct {
+	PermissionIDs []uint64 `json:"permission_ids" binding:"required"`
 }
 
 type FoundationService struct {
@@ -292,6 +309,9 @@ func (s *FoundationService) CreateUser(ctx context.Context, actor authz.Principa
 	if err != nil {
 		return nil, err
 	}
+	if role.Status == model.RoleStatusInactive || roleEscalates(actor, role) {
+		return nil, ErrForbidden
+	}
 	if !actor.IsSuperAdmin() {
 		if actor.SchoolID == nil || input.SchoolID == nil || *actor.SchoolID != *input.SchoolID || role.Name == model.RoleSchoolAdmin {
 			return nil, ErrForbidden
@@ -352,6 +372,9 @@ func (s *FoundationService) UpdateUser(ctx context.Context, actor authz.Principa
 		role, err := s.foundation.FindRoleByID(ctx, *input.RoleID)
 		if err != nil {
 			return nil, err
+		}
+		if role.Status == model.RoleStatusInactive || roleEscalates(actor, role) {
+			return nil, ErrForbidden
 		}
 		if !actor.IsSuperAdmin() && (role.Name == model.RoleSchoolAdmin || role.Name == model.RoleSuperAdmin) {
 			return nil, ErrForbidden
@@ -426,6 +449,140 @@ func (s *FoundationService) ListRoles(ctx context.Context, actor authz.Principal
 		return nil, ErrForbidden
 	}
 	return s.foundation.ListRoles(ctx)
+}
+
+func (s *FoundationService) CreateRole(ctx context.Context, actor authz.Principal, input CreateRoleInput, request RequestMetadata) (*model.Role, error) {
+	if !canManageRoles(actor) {
+		return nil, ErrForbidden
+	}
+	name := strings.TrimSpace(input.Name)
+	if strings.EqualFold(name, model.RoleSuperAdmin) {
+		return nil, ErrProtectedRecord
+	}
+	permissions, err := s.permissionsByIDs(ctx, input.PermissionIDs)
+	if err != nil {
+		return nil, err
+	}
+	role := &model.Role{Name: name, Description: strings.TrimSpace(input.Description), Status: model.RoleStatusActive, Permissions: permissions}
+	if err := s.foundation.CreateRole(ctx, role); err != nil {
+		if errors.Is(err, gorm.ErrDuplicatedKey) {
+			return nil, ErrDuplicateRecord
+		}
+		return nil, fmt.Errorf("create role: %w", err)
+	}
+	if err := s.audit.Write(ctx, &actor.UserID, nil, "INSERT", "roles", &role.ID, request, map[string]any{"permission_ids": input.PermissionIDs}); err != nil {
+		return nil, err
+	}
+	return role, nil
+}
+
+func (s *FoundationService) UpdateRole(ctx context.Context, actor authz.Principal, roleID uint64, input UpdateRoleInput, request RequestMetadata) (*model.Role, error) {
+	if !canManageRoles(actor) {
+		return nil, ErrForbidden
+	}
+	if input.Name == nil && input.Description == nil && input.Status == nil {
+		return nil, ErrNoChanges
+	}
+	role, err := s.mutableRole(ctx, roleID)
+	if err != nil {
+		return nil, err
+	}
+	if input.Name != nil {
+		name := strings.TrimSpace(*input.Name)
+		if strings.EqualFold(name, model.RoleSuperAdmin) {
+			return nil, ErrProtectedRecord
+		}
+		role.Name = name
+	}
+	if input.Description != nil {
+		role.Description = strings.TrimSpace(*input.Description)
+	}
+	if input.Status != nil {
+		role.Status = *input.Status
+	}
+	if err := s.foundation.UpdateRole(ctx, role); err != nil {
+		if errors.Is(err, gorm.ErrDuplicatedKey) {
+			return nil, ErrDuplicateRecord
+		}
+		return nil, fmt.Errorf("update role: %w", err)
+	}
+	if err := s.audit.Write(ctx, &actor.UserID, nil, "UPDATE", "roles", &role.ID, request, map[string]any{"status": role.Status}); err != nil {
+		return nil, err
+	}
+	return role, nil
+}
+
+func (s *FoundationService) ArchiveRole(ctx context.Context, actor authz.Principal, roleID uint64, request RequestMetadata) error {
+	status := model.RoleStatusInactive
+	role, err := s.UpdateRole(ctx, actor, roleID, UpdateRoleInput{Status: &status}, request)
+	if err != nil {
+		return err
+	}
+	return s.audit.Write(ctx, &actor.UserID, nil, "DELETE", "roles", &role.ID, request, map[string]any{"soft_delete": true})
+}
+
+func (s *FoundationService) ReplaceRolePermissions(ctx context.Context, actor authz.Principal, roleID uint64, input ReplaceRolePermissionsInput, request RequestMetadata) (*model.Role, error) {
+	if !canManageRoles(actor) {
+		return nil, ErrForbidden
+	}
+	role, err := s.mutableRole(ctx, roleID)
+	if err != nil {
+		return nil, err
+	}
+	permissions, err := s.permissionsByIDs(ctx, input.PermissionIDs)
+	if err != nil {
+		return nil, err
+	}
+	if err := s.foundation.ReplaceRolePermissions(ctx, role.ID, permissions); err != nil {
+		return nil, fmt.Errorf("replace role permissions: %w", err)
+	}
+	role.Permissions = permissions
+	if err := s.audit.Write(ctx, &actor.UserID, nil, "UPDATE", "role_permissions", &role.ID, request, map[string]any{"permission_ids": input.PermissionIDs}); err != nil {
+		return nil, err
+	}
+	return role, nil
+}
+
+func canManageRoles(actor authz.Principal) bool {
+	return actor.IsSuperAdmin() && actor.HasPermission(model.PermissionManageRoles)
+}
+
+func (s *FoundationService) mutableRole(ctx context.Context, roleID uint64) (*model.Role, error) {
+	role, err := s.foundation.FindRoleByID(ctx, roleID)
+	if err != nil {
+		return nil, err
+	}
+	if role.Name == model.RoleSuperAdmin {
+		return nil, ErrProtectedRecord
+	}
+	return role, nil
+}
+
+func (s *FoundationService) permissionsByIDs(ctx context.Context, input []uint64) ([]model.Permission, error) {
+	seen := make(map[uint64]struct{}, len(input))
+	ids := make([]uint64, 0, len(input))
+	for _, id := range input {
+		if id == 0 {
+			return nil, repository.ErrNotFound
+		}
+		if _, exists := seen[id]; !exists {
+			seen[id] = struct{}{}
+			ids = append(ids, id)
+		}
+	}
+	return s.foundation.FindPermissionsByIDs(ctx, ids)
+}
+
+func roleEscalates(actor authz.Principal, role *model.Role) bool {
+	if actor.IsSuperAdmin() {
+		return false
+	}
+	for _, permission := range role.Permissions {
+		if !actor.HasPermission(permission.Name) {
+			return true
+		}
+	}
+	return false
 }
 
 func (s *FoundationService) ListPermissions(ctx context.Context, actor authz.Principal) ([]model.Permission, error) {

@@ -62,11 +62,11 @@ func SeedFoundation(ctx context.Context, db *gorm.DB) error {
 		{Name: model.PermissionViewAuditLogs, Description: "View security and data audit events"},
 	}
 	roles := []model.Role{
-		{Name: model.RoleSuperAdmin, Description: "Platform administrator with access to all schools"},
-		{Name: model.RoleSchoolAdmin, Description: "Administrator restricted to one school"},
-		{Name: model.RoleRegistrar, Description: "Student registration and attendance operator"},
-		{Name: model.RoleFinance, Description: "School finance operator"},
-		{Name: model.RoleTeacher, Description: "Teacher restricted to assigned academic work"},
+		{Name: model.RoleSuperAdmin, Description: "Platform administrator with access to all schools", Status: model.RoleStatusActive, IsSystem: true},
+		{Name: model.RoleSchoolAdmin, Description: "Administrator restricted to one school", Status: model.RoleStatusActive, IsSystem: true},
+		{Name: model.RoleRegistrar, Description: "Student registration and attendance operator", Status: model.RoleStatusActive, IsSystem: true},
+		{Name: model.RoleFinance, Description: "School finance operator", Status: model.RoleStatusActive, IsSystem: true},
+		{Name: model.RoleTeacher, Description: "Teacher restricted to assigned academic work", Status: model.RoleStatusActive, IsSystem: true},
 	}
 
 	return db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
@@ -75,6 +75,11 @@ func SeedFoundation(ctx context.Context, db *gorm.DB) error {
 		}
 		if err := tx.Clauses(clause.OnConflict{Columns: []clause.Column{{Name: "role_name"}}, DoNothing: true}).Create(&roles).Error; err != nil {
 			return fmt.Errorf("seed roles: %w", err)
+		}
+		if err := tx.Model(&model.Role{}).Where("role_name IN ?", []string{
+			model.RoleSuperAdmin, model.RoleSchoolAdmin, model.RoleRegistrar, model.RoleFinance, model.RoleTeacher,
+		}).Updates(map[string]any{"is_system": true, "status": model.RoleStatusActive}).Error; err != nil {
+			return fmt.Errorf("protect system roles: %w", err)
 		}
 
 		var savedPermissions []model.Permission

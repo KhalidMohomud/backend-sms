@@ -1,6 +1,7 @@
 package repository
 
 import (
+	"backendapi/internal/database"
 	"backendapi/internal/model"
 	"context"
 	"errors"
@@ -19,6 +20,7 @@ type UserRepository interface {
 	RecordFailedLogin(context.Context, uint64) error
 	RecordSuccessfulLogin(context.Context, uint64, time.Time) error
 	UpdateProfile(context.Context, *model.User) error
+	UpdatePassword(context.Context, uint64, string) error
 	UpdateStatus(context.Context, uint64, model.UserStatus) error
 	CountSuperAdmins(context.Context) (int64, error)
 }
@@ -28,24 +30,24 @@ type userRepository struct{ db *gorm.DB }
 func NewUserRepository(db *gorm.DB) UserRepository { return &userRepository{db: db} }
 
 func (r *userRepository) Create(ctx context.Context, user *model.User) error {
-	return r.db.WithContext(ctx).Create(user).Error
+	return database.FromContext(ctx, r.db).Create(user).Error
 }
 
 func (r *userRepository) FindByUsername(ctx context.Context, username string) (*model.User, error) {
 	var user model.User
-	err := r.withAccessControl(r.db.WithContext(ctx)).
+	err := r.withAccessControl(database.FromContext(ctx, r.db)).
 		Where("LOWER(username) = ?", strings.ToLower(strings.TrimSpace(username))).First(&user).Error
 	return mapUserResult(&user, err)
 }
 
 func (r *userRepository) FindByID(ctx context.Context, id uint64) (*model.User, error) {
 	var user model.User
-	err := r.withAccessControl(r.db.WithContext(ctx)).First(&user, "usr_no = ?", id).Error
+	err := r.withAccessControl(database.FromContext(ctx, r.db)).First(&user, "usr_no = ?", id).Error
 	return mapUserResult(&user, err)
 }
 
 func (r *userRepository) RecordFailedLogin(ctx context.Context, id uint64) error {
-	return r.db.WithContext(ctx).Model(&model.User{}).
+	return database.FromContext(ctx, r.db).Model(&model.User{}).
 		Where("usr_no = ? AND status = ?", id, model.UserStatusActive).
 		Updates(map[string]any{
 			"failed_logins": gorm.Expr("LEAST(failed_logins + 1, ?)", maximumFailedLogins),
@@ -54,12 +56,12 @@ func (r *userRepository) RecordFailedLogin(ctx context.Context, id uint64) error
 }
 
 func (r *userRepository) RecordSuccessfulLogin(ctx context.Context, id uint64, at time.Time) error {
-	return r.db.WithContext(ctx).Model(&model.User{}).Where("usr_no = ?", id).
+	return database.FromContext(ctx, r.db).Model(&model.User{}).Where("usr_no = ?", id).
 		Updates(map[string]any{"failed_logins": 0, "last_login": at}).Error
 }
 
 func (r *userRepository) UpdateProfile(ctx context.Context, user *model.User) error {
-	result := r.db.WithContext(ctx).Model(&model.User{}).Where("usr_no = ?", user.ID).
+	result := database.FromContext(ctx, r.db).Model(&model.User{}).Where("usr_no = ?", user.ID).
 		Updates(map[string]any{
 			"username": user.Username,
 			"stf_no":   user.StaffID,
@@ -74,12 +76,24 @@ func (r *userRepository) UpdateProfile(ctx context.Context, user *model.User) er
 	return nil
 }
 
+func (r *userRepository) UpdatePassword(ctx context.Context, id uint64, passwordHash string) error {
+	result := database.FromContext(ctx, r.db).Model(&model.User{}).Where("usr_no = ?", id).
+		Updates(map[string]any{"password_hash": passwordHash, "failed_logins": 0, "status": model.UserStatusActive})
+	if result.Error != nil {
+		return result.Error
+	}
+	if result.RowsAffected == 0 {
+		return ErrNotFound
+	}
+	return nil
+}
+
 func (r *userRepository) UpdateStatus(ctx context.Context, id uint64, status model.UserStatus) error {
 	updates := map[string]any{"status": status}
 	if status == model.UserStatusActive {
 		updates["failed_logins"] = 0
 	}
-	result := r.db.WithContext(ctx).Model(&model.User{}).Where("usr_no = ?", id).Updates(updates)
+	result := database.FromContext(ctx, r.db).Model(&model.User{}).Where("usr_no = ?", id).Updates(updates)
 	if result.Error != nil {
 		return result.Error
 	}
@@ -91,7 +105,7 @@ func (r *userRepository) UpdateStatus(ctx context.Context, id uint64, status mod
 
 func (r *userRepository) CountSuperAdmins(ctx context.Context) (int64, error) {
 	var count int64
-	err := r.db.WithContext(ctx).Model(&model.User{}).
+	err := database.FromContext(ctx, r.db).Model(&model.User{}).
 		Joins("JOIN roles ON roles.role_no = users.role_no").
 		Where("users.sch_no IS NULL AND roles.role_name = ?", model.RoleSuperAdmin).
 		Count(&count).Error

@@ -383,6 +383,108 @@ func (h *FoundationHandler) ListRoles(c *gin.Context) {
 	c.JSON(http.StatusOK, roles)
 }
 
+// CreateRole godoc
+// @Summary Create a custom role
+// @Tags foundation
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Param payload body service.CreateRoleInput true "Role and permissions"
+// @Success 201 {object} model.Role
+// @Router /roles [post]
+func (h *FoundationHandler) CreateRole(c *gin.Context) {
+	var input service.CreateRoleInput
+	if err := c.ShouldBindJSON(&input); err != nil {
+		c.JSON(http.StatusBadRequest, errorResponse{Error: "invalid role request"})
+		return
+	}
+	principal, _ := middleware.Principal(c)
+	role, err := h.service.CreateRole(c.Request.Context(), principal, input, requestMetadata(c))
+	if err != nil {
+		writeServiceError(c, err)
+		return
+	}
+	c.JSON(http.StatusCreated, role)
+}
+
+// UpdateRole godoc
+// @Summary Update a custom role
+// @Tags foundation
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Param id path int true "Role ID"
+// @Param payload body service.UpdateRoleInput true "Fields to update"
+// @Success 200 {object} model.Role
+// @Router /roles/{id} [patch]
+func (h *FoundationHandler) UpdateRole(c *gin.Context) {
+	roleID, ok := positivePathID(c, "id", "role")
+	if !ok {
+		return
+	}
+	var input service.UpdateRoleInput
+	if err := c.ShouldBindJSON(&input); err != nil {
+		c.JSON(http.StatusBadRequest, errorResponse{Error: "invalid role update request"})
+		return
+	}
+	principal, _ := middleware.Principal(c)
+	role, err := h.service.UpdateRole(c.Request.Context(), principal, roleID, input, requestMetadata(c))
+	if err != nil {
+		writeServiceError(c, err)
+		return
+	}
+	c.JSON(http.StatusOK, role)
+}
+
+// ArchiveRole godoc
+// @Summary Deactivate a custom role
+// @Tags foundation
+// @Security BearerAuth
+// @Param id path int true "Role ID"
+// @Success 204
+// @Router /roles/{id} [delete]
+func (h *FoundationHandler) ArchiveRole(c *gin.Context) {
+	roleID, ok := positivePathID(c, "id", "role")
+	if !ok {
+		return
+	}
+	principal, _ := middleware.Principal(c)
+	if err := h.service.ArchiveRole(c.Request.Context(), principal, roleID, requestMetadata(c)); err != nil {
+		writeServiceError(c, err)
+		return
+	}
+	c.Status(http.StatusNoContent)
+}
+
+// ReplaceRolePermissions godoc
+// @Summary Replace a custom role's permissions
+// @Tags foundation
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Param id path int true "Role ID"
+// @Param payload body service.ReplaceRolePermissionsInput true "Complete permission assignment"
+// @Success 200 {object} model.Role
+// @Router /roles/{id}/permissions [put]
+func (h *FoundationHandler) ReplaceRolePermissions(c *gin.Context) {
+	roleID, ok := positivePathID(c, "id", "role")
+	if !ok {
+		return
+	}
+	var input service.ReplaceRolePermissionsInput
+	if err := c.ShouldBindJSON(&input); err != nil {
+		c.JSON(http.StatusBadRequest, errorResponse{Error: "invalid permission assignment"})
+		return
+	}
+	principal, _ := middleware.Principal(c)
+	role, err := h.service.ReplaceRolePermissions(c.Request.Context(), principal, roleID, input, requestMetadata(c))
+	if err != nil {
+		writeServiceError(c, err)
+		return
+	}
+	c.JSON(http.StatusOK, role)
+}
+
 // ListPermissions godoc
 // @Summary List permissions
 // @Tags foundation
@@ -437,6 +539,8 @@ func writeServiceError(c *gin.Context, err error) {
 		c.JSON(http.StatusBadRequest, errorResponse{Error: err.Error()})
 	case errors.Is(err, repository.ErrNotFound):
 		c.JSON(http.StatusNotFound, errorResponse{Error: err.Error()})
+	case errors.Is(err, service.ErrProtectedRecord):
+		c.JSON(http.StatusForbidden, errorResponse{Error: err.Error()})
 	default:
 		c.JSON(http.StatusInternalServerError, errorResponse{Error: "internal server error"})
 	}
