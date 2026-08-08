@@ -71,6 +71,20 @@ func TestCreateExamResultRejectsMarksAboveMaximum(t *testing.T) {
 	}
 }
 
+func TestCreateExamResultRejectsMismatchedClass(t *testing.T) {
+	schoolID := uint64(8)
+	memory := validAcademicMemory(schoolID)
+	memory.subjectClasses[5].ClassID = 99
+	service := newAcademicTestService(memory)
+	actor := academicActor(schoolID, model.PermissionEnterMarks)
+	_, err := service.CreateExamResult(context.Background(), actor, schoolID, CreateExamResultInput{
+		ExamRegistrationID: 7, StudentClassID: 6, SubjectClassID: 5, Marks: 80,
+	}, RequestMetadata{})
+	if !errors.Is(err, ErrInvalidInput) {
+		t.Fatalf("CreateExamResult(mismatched class) error = %v, want ErrInvalidInput", err)
+	}
+}
+
 func TestTeacherCreatesAssignedExamResultAndAudit(t *testing.T) {
 	schoolID := uint64(8)
 	memory := validAcademicMemory(schoolID)

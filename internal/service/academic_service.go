@@ -206,6 +206,9 @@ func (s *AcademicService) CreateSubjectClass(ctx context.Context, actor authz.Pr
 	if !canManageAssignments(actor, schoolID) {
 		return nil, ErrForbidden
 	}
+	if err := s.requireActiveSchool(ctx, schoolID); err != nil {
+		return nil, err
+	}
 	maxMark := input.MaxMark
 	if maxMark == 0 {
 		maxMark = 100
@@ -305,6 +308,9 @@ func (s *AcademicService) GetExamRegistration(ctx context.Context, actor authz.P
 func (s *AcademicService) CreateExamRegistration(ctx context.Context, actor authz.Principal, schoolID uint64, input CreateExamRegistrationInput, request RequestMetadata) (*model.ExamRegistration, error) {
 	if !canManageExams(actor, schoolID) {
 		return nil, ErrForbidden
+	}
+	if err := s.requireActiveSchool(ctx, schoolID); err != nil {
+		return nil, err
 	}
 	row, err := s.buildExamRegistration(ctx, schoolID, input.ExamID, input.AcademicYearID, input.StartsOn, input.EndsOn)
 	if err != nil {
@@ -411,6 +417,9 @@ func (s *AcademicService) GetExamResult(ctx context.Context, actor authz.Princip
 func (s *AcademicService) CreateExamResult(ctx context.Context, actor authz.Principal, schoolID uint64, input CreateExamResultInput, request RequestMetadata) (*model.ExamResult, error) {
 	if !canEnterMarks(actor, schoolID) {
 		return nil, ErrForbidden
+	}
+	if err := s.requireActiveSchool(ctx, schoolID); err != nil {
+		return nil, err
 	}
 	registration, enrollment, assignment, err := s.validateResultReferences(ctx, actor, schoolID, input.ExamRegistrationID, input.StudentClassID, input.SubjectClassID, input.Marks)
 	if err != nil {
