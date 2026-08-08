@@ -12,6 +12,7 @@ import (
 
 type TokenClaims struct {
 	SchoolID    *uint64  `json:"school_id,omitempty"`
+	StaffID     *uint64  `json:"staff_id,omitempty"`
 	Role        string   `json:"role"`
 	Permissions []string `json:"permissions,omitempty"`
 	jwt.RegisteredClaims
@@ -39,6 +40,7 @@ func (m *JWTManager) Generate(principal authz.Principal) (string, time.Time, err
 	expiresAt := now.Add(m.expiration)
 	claims := TokenClaims{
 		SchoolID:    principal.SchoolID,
+		StaffID:     principal.StaffID,
 		Role:        principal.Role,
 		Permissions: principal.Permissions,
 		RegisteredClaims: jwt.RegisteredClaims{
@@ -81,7 +83,7 @@ func (m *JWTManager) ParseIdentity(tokenString string) (TokenIdentity, error) {
 		return TokenIdentity{}, fmt.Errorf("invalid token identity")
 	}
 	return TokenIdentity{
-		Principal: authz.Principal{UserID: userID, SchoolID: claims.SchoolID, Role: claims.Role, Permissions: claims.Permissions},
+		Principal: authz.Principal{UserID: userID, SchoolID: claims.SchoolID, StaffID: claims.StaffID, Role: claims.Role, Permissions: claims.Permissions},
 		JTI:       claims.ID, IssuedAt: claims.IssuedAt.Time, ExpiresAt: claims.ExpiresAt.Time,
 	}, nil
 }

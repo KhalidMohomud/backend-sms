@@ -956,6 +956,434 @@
                 }
             }
         },
+        "/exam-registrations": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "academic"
+                ],
+                "summary": "List scheduled exams",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Required for SuperAdmin",
+                        "name": "X-School-ID",
+                        "in": "header"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Academic year ID",
+                        "name": "academic_year_id",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Exam type ID",
+                        "name": "exam_id",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/model.ExamRegistration"
+                            }
+                        }
+                    }
+                }
+            },
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "academic"
+                ],
+                "summary": "Schedule an exam inside an academic year",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Required for SuperAdmin",
+                        "name": "X-School-ID",
+                        "in": "header"
+                    },
+                    {
+                        "description": "Exam schedule",
+                        "name": "payload",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/service.CreateExamRegistrationInput"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/model.ExamRegistration"
+                        }
+                    }
+                }
+            }
+        },
+        "/exam-registrations/{id}": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "academic"
+                ],
+                "summary": "Get a scheduled exam",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Required for SuperAdmin",
+                        "name": "X-School-ID",
+                        "in": "header"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Exam registration ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/model.ExamRegistration"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "tags": [
+                    "academic"
+                ],
+                "summary": "Delete a scheduled exam with no results",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Required for SuperAdmin",
+                        "name": "X-School-ID",
+                        "in": "header"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Exam registration ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "No Content"
+                    }
+                }
+            },
+            "patch": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "academic"
+                ],
+                "summary": "Update a scheduled exam",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Required for SuperAdmin",
+                        "name": "X-School-ID",
+                        "in": "header"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Exam registration ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Fields to update",
+                        "name": "payload",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/service.UpdateExamRegistrationInput"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/model.ExamRegistration"
+                        }
+                    }
+                }
+            }
+        },
+        "/exam-results": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "academic"
+                ],
+                "summary": "List exam results",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Required for SuperAdmin",
+                        "name": "X-School-ID",
+                        "in": "header"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Exam registration ID",
+                        "name": "exam_registration_id",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Enrollment ID",
+                        "name": "student_class_id",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Subject assignment ID",
+                        "name": "subject_class_id",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Student ID",
+                        "name": "student_id",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/model.ExamResult"
+                            }
+                        }
+                    }
+                }
+            },
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "academic"
+                ],
+                "summary": "Record a student's subject mark",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Required for SuperAdmin",
+                        "name": "X-School-ID",
+                        "in": "header"
+                    },
+                    {
+                        "description": "Result details",
+                        "name": "payload",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/service.CreateExamResultInput"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/model.ExamResult"
+                        }
+                    }
+                }
+            }
+        },
+        "/exam-results/{id}": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "academic"
+                ],
+                "summary": "Get an exam result",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Required for SuperAdmin",
+                        "name": "X-School-ID",
+                        "in": "header"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Exam result ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/model.ExamResult"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "tags": [
+                    "academic"
+                ],
+                "summary": "Delete an exam result",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Required for SuperAdmin",
+                        "name": "X-School-ID",
+                        "in": "header"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Exam result ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "No Content"
+                    }
+                }
+            },
+            "patch": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "academic"
+                ],
+                "summary": "Correct an exam mark",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Required for SuperAdmin",
+                        "name": "X-School-ID",
+                        "in": "header"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Exam result ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Corrected mark",
+                        "name": "payload",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/service.UpdateExamResultInput"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/model.ExamResult"
+                        }
+                    }
+                }
+            }
+        },
         "/guardians": {
             "get": {
                 "security": [
@@ -2437,6 +2865,238 @@
                 }
             }
         },
+        "/student-classes": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "academic"
+                ],
+                "summary": "List student enrollments",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Required for SuperAdmin",
+                        "name": "X-School-ID",
+                        "in": "header"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Academic year ID",
+                        "name": "academic_year_id",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Class ID",
+                        "name": "class_id",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Student ID",
+                        "name": "student_id",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Student name search",
+                        "name": "search",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Page size, maximum 100",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Pagination offset",
+                        "name": "offset",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/model.StudentClass"
+                            }
+                        }
+                    }
+                }
+            },
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "academic"
+                ],
+                "summary": "Enroll a student in a class and academic year",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Required for SuperAdmin",
+                        "name": "X-School-ID",
+                        "in": "header"
+                    },
+                    {
+                        "description": "Enrollment details",
+                        "name": "payload",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/service.CreateStudentClassInput"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/model.StudentClass"
+                        }
+                    }
+                }
+            }
+        },
+        "/student-classes/{id}": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "academic"
+                ],
+                "summary": "Get a student enrollment",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Required for SuperAdmin",
+                        "name": "X-School-ID",
+                        "in": "header"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Enrollment ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/model.StudentClass"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "tags": [
+                    "academic"
+                ],
+                "summary": "Delete an unused student enrollment",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Required for SuperAdmin",
+                        "name": "X-School-ID",
+                        "in": "header"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Enrollment ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "No Content"
+                    }
+                }
+            },
+            "patch": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "academic"
+                ],
+                "summary": "Update a student enrollment",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Required for SuperAdmin",
+                        "name": "X-School-ID",
+                        "in": "header"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Enrollment ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Fields to update",
+                        "name": "payload",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/service.UpdateStudentClassInput"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/model.StudentClass"
+                        }
+                    }
+                }
+            }
+        },
         "/students": {
             "get": {
                 "security": [
@@ -2652,6 +3312,226 @@
                         "description": "OK",
                         "schema": {
                             "$ref": "#/definitions/model.Student"
+                        }
+                    }
+                }
+            }
+        },
+        "/subject-classes": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "academic"
+                ],
+                "summary": "List class subject and teacher assignments",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Required for SuperAdmin",
+                        "name": "X-School-ID",
+                        "in": "header"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Academic year ID",
+                        "name": "academic_year_id",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Class ID",
+                        "name": "class_id",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Subject ID",
+                        "name": "subject_id",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Teacher staff ID",
+                        "name": "staff_id",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/model.SubjectClass"
+                            }
+                        }
+                    }
+                }
+            },
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "academic"
+                ],
+                "summary": "Assign a subject and teacher to a class",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Required for SuperAdmin",
+                        "name": "X-School-ID",
+                        "in": "header"
+                    },
+                    {
+                        "description": "Assignment details",
+                        "name": "payload",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/service.CreateSubjectClassInput"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/model.SubjectClass"
+                        }
+                    }
+                }
+            }
+        },
+        "/subject-classes/{id}": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "academic"
+                ],
+                "summary": "Get a class subject assignment",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Required for SuperAdmin",
+                        "name": "X-School-ID",
+                        "in": "header"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Assignment ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/model.SubjectClass"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "tags": [
+                    "academic"
+                ],
+                "summary": "Delete an unused class subject assignment",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Required for SuperAdmin",
+                        "name": "X-School-ID",
+                        "in": "header"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Assignment ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "No Content"
+                    }
+                }
+            },
+            "patch": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "academic"
+                ],
+                "summary": "Update a class subject assignment",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Required for SuperAdmin",
+                        "name": "X-School-ID",
+                        "in": "header"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Assignment ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Fields to update",
+                        "name": "payload",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/service.UpdateSubjectClassInput"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/model.SubjectClass"
                         }
                     }
                 }
@@ -2998,6 +3878,9 @@
                 "school_id": {
                     "type": "integer"
                 },
+                "staff_id": {
+                    "type": "integer"
+                },
                 "user_id": {
                     "type": "integer"
                 }
@@ -3148,6 +4031,102 @@
                 },
                 "status": {
                     "$ref": "#/definitions/model.RecordStatus"
+                },
+                "updated_at": {
+                    "type": "string"
+                }
+            }
+        },
+        "model.Exam": {
+            "type": "object",
+            "properties": {
+                "created_at": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "status": {
+                    "$ref": "#/definitions/model.RecordStatus"
+                },
+                "updated_at": {
+                    "type": "string"
+                }
+            }
+        },
+        "model.ExamRegistration": {
+            "type": "object",
+            "properties": {
+                "academic_year": {
+                    "$ref": "#/definitions/model.AcademicYear"
+                },
+                "academic_year_id": {
+                    "type": "integer"
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "ends_on": {
+                    "type": "string"
+                },
+                "exam": {
+                    "$ref": "#/definitions/model.Exam"
+                },
+                "exam_id": {
+                    "type": "integer"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "school_id": {
+                    "type": "integer"
+                },
+                "starts_on": {
+                    "type": "string"
+                },
+                "updated_at": {
+                    "type": "string"
+                }
+            }
+        },
+        "model.ExamResult": {
+            "type": "object",
+            "properties": {
+                "created_at": {
+                    "type": "string"
+                },
+                "exam_registration": {
+                    "$ref": "#/definitions/model.ExamRegistration"
+                },
+                "exam_registration_id": {
+                    "type": "integer"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "marks": {
+                    "type": "number"
+                },
+                "recorded_by": {
+                    "type": "integer"
+                },
+                "school_id": {
+                    "type": "integer"
+                },
+                "student_class": {
+                    "$ref": "#/definitions/model.StudentClass"
+                },
+                "student_class_id": {
+                    "type": "integer"
+                },
+                "subject_class": {
+                    "$ref": "#/definitions/model.SubjectClass"
+                },
+                "subject_class_id": {
+                    "type": "integer"
                 },
                 "updated_at": {
                     "type": "string"
@@ -3532,6 +4511,41 @@
                 }
             }
         },
+        "model.StudentClass": {
+            "type": "object",
+            "properties": {
+                "academic_year": {
+                    "$ref": "#/definitions/model.AcademicYear"
+                },
+                "academic_year_id": {
+                    "type": "integer"
+                },
+                "class": {
+                    "$ref": "#/definitions/model.Class"
+                },
+                "class_id": {
+                    "type": "integer"
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "school_id": {
+                    "type": "integer"
+                },
+                "student_id": {
+                    "type": "integer"
+                },
+                "student_name": {
+                    "type": "string"
+                },
+                "updated_at": {
+                    "type": "string"
+                }
+            }
+        },
         "model.StudentStatus": {
             "type": "string",
             "enum": [
@@ -3546,6 +4560,70 @@
                 "StudentStatusTransferred",
                 "StudentStatusDropped"
             ]
+        },
+        "model.Subject": {
+            "type": "object",
+            "properties": {
+                "created_at": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "status": {
+                    "$ref": "#/definitions/model.RecordStatus"
+                },
+                "updated_at": {
+                    "type": "string"
+                }
+            }
+        },
+        "model.SubjectClass": {
+            "type": "object",
+            "properties": {
+                "academic_year": {
+                    "$ref": "#/definitions/model.AcademicYear"
+                },
+                "academic_year_id": {
+                    "type": "integer"
+                },
+                "class": {
+                    "$ref": "#/definitions/model.Class"
+                },
+                "class_id": {
+                    "type": "integer"
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "max_mark": {
+                    "type": "number"
+                },
+                "school_id": {
+                    "type": "integer"
+                },
+                "staff_id": {
+                    "type": "integer"
+                },
+                "staff_name": {
+                    "type": "string"
+                },
+                "subject": {
+                    "$ref": "#/definitions/model.Subject"
+                },
+                "subject_id": {
+                    "type": "integer"
+                },
+                "updated_at": {
+                    "type": "string"
+                }
+            }
         },
         "model.User": {
             "type": "object",
@@ -3719,6 +4797,66 @@
                         }
                     ],
                     "example": "active"
+                }
+            }
+        },
+        "service.CreateExamRegistrationInput": {
+            "type": "object",
+            "required": [
+                "academic_year_id",
+                "ends_on",
+                "exam_id",
+                "starts_on"
+            ],
+            "properties": {
+                "academic_year_id": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "example": 1
+                },
+                "ends_on": {
+                    "type": "string",
+                    "example": "2026-10-07"
+                },
+                "exam_id": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "example": 1
+                },
+                "starts_on": {
+                    "type": "string",
+                    "example": "2026-10-01"
+                }
+            }
+        },
+        "service.CreateExamResultInput": {
+            "type": "object",
+            "required": [
+                "exam_registration_id",
+                "student_class_id",
+                "subject_class_id"
+            ],
+            "properties": {
+                "exam_registration_id": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "example": 1
+                },
+                "marks": {
+                    "type": "number",
+                    "maximum": 999.99,
+                    "minimum": 0,
+                    "example": 85
+                },
+                "student_class_id": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "example": 1
+                },
+                "subject_class_id": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "example": 1
                 }
             }
         },
@@ -3944,6 +5082,31 @@
                 }
             }
         },
+        "service.CreateStudentClassInput": {
+            "type": "object",
+            "required": [
+                "academic_year_id",
+                "class_id",
+                "student_id"
+            ],
+            "properties": {
+                "academic_year_id": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "example": 1
+                },
+                "class_id": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "example": 1
+                },
+                "student_id": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "example": 1
+                }
+            }
+        },
         "service.CreateStudentInput": {
             "type": "object",
             "required": [
@@ -4020,6 +5183,42 @@
                         }
                     ],
                     "example": "active"
+                }
+            }
+        },
+        "service.CreateSubjectClassInput": {
+            "type": "object",
+            "required": [
+                "academic_year_id",
+                "class_id",
+                "staff_id",
+                "subject_id"
+            ],
+            "properties": {
+                "academic_year_id": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "example": 1
+                },
+                "class_id": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "example": 1
+                },
+                "max_mark": {
+                    "type": "number",
+                    "maximum": 999.99,
+                    "example": 100
+                },
+                "staff_id": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "example": 1
+                },
+                "subject_id": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "example": 1
                 }
             }
         },
@@ -4197,6 +5396,39 @@
                         }
                     ],
                     "example": "active"
+                }
+            }
+        },
+        "service.UpdateExamRegistrationInput": {
+            "type": "object",
+            "properties": {
+                "academic_year_id": {
+                    "type": "integer",
+                    "minimum": 1
+                },
+                "ends_on": {
+                    "type": "string"
+                },
+                "exam_id": {
+                    "type": "integer",
+                    "minimum": 1
+                },
+                "starts_on": {
+                    "type": "string"
+                }
+            }
+        },
+        "service.UpdateExamResultInput": {
+            "type": "object",
+            "required": [
+                "marks"
+            ],
+            "properties": {
+                "marks": {
+                    "type": "number",
+                    "maximum": 999.99,
+                    "minimum": 0,
+                    "example": 88
                 }
             }
         },
@@ -4389,6 +5621,23 @@
                 }
             }
         },
+        "service.UpdateStudentClassInput": {
+            "type": "object",
+            "properties": {
+                "academic_year_id": {
+                    "type": "integer",
+                    "minimum": 1
+                },
+                "class_id": {
+                    "type": "integer",
+                    "minimum": 1
+                },
+                "student_id": {
+                    "type": "integer",
+                    "minimum": 1
+                }
+            }
+        },
         "service.UpdateStudentInput": {
             "type": "object",
             "properties": {
@@ -4454,6 +5703,31 @@
                             "$ref": "#/definitions/model.StudentStatus"
                         }
                     ]
+                }
+            }
+        },
+        "service.UpdateSubjectClassInput": {
+            "type": "object",
+            "properties": {
+                "academic_year_id": {
+                    "type": "integer",
+                    "minimum": 1
+                },
+                "class_id": {
+                    "type": "integer",
+                    "minimum": 1
+                },
+                "max_mark": {
+                    "type": "number",
+                    "maximum": 999.99
+                },
+                "staff_id": {
+                    "type": "integer",
+                    "minimum": 1
+                },
+                "subject_id": {
+                    "type": "integer",
+                    "minimum": 1
                 }
             }
         },

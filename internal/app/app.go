@@ -59,6 +59,10 @@ func New(ctx context.Context, cfg config.Config) (*App, error) {
 			closePostgres(db)
 			return nil, fmt.Errorf("run Phase 3 database migrations: %w", err)
 		}
+		if err := database.MigrateAcademic(db); err != nil {
+			closePostgres(db)
+			return nil, fmt.Errorf("run academic database migrations: %w", err)
+		}
 	}
 	if err := database.SeedFoundation(ctx, db); err != nil {
 		closePostgres(db)
@@ -72,6 +76,10 @@ func New(ctx context.Context, cfg config.Config) (*App, error) {
 		closePostgres(db)
 		return nil, err
 	}
+	if err := database.SeedAcademic(ctx, db); err != nil {
+		closePostgres(db)
+		return nil, err
+	}
 	if err := database.ApplyFoundationRLS(db); err != nil {
 		closePostgres(db)
 		return nil, err
@@ -81,6 +89,10 @@ func New(ctx context.Context, cfg config.Config) (*App, error) {
 		return nil, err
 	}
 	if err := database.ApplyPhase3RLS(db); err != nil {
+		closePostgres(db)
+		return nil, err
+	}
+	if err := database.ApplyAcademicRLS(db); err != nil {
 		closePostgres(db)
 		return nil, err
 	}
@@ -97,12 +109,14 @@ func New(ctx context.Context, cfg config.Config) (*App, error) {
 	foundationRepository := repository.NewFoundationRepository(db)
 	structureRepository := repository.NewStructureRepository(db)
 	peopleRepository := repository.NewPeopleRepository(db)
+	academicRepository := repository.NewAcademicRepository(db)
 	auditRepository := repository.NewAuditRepository(db)
 	auditWriter := service.NewAuditWriter(auditRepository)
 	authService := service.NewAuthService(userRepository, jwtManager, auditWriter, sessionStore)
 	foundationService := service.NewFoundationService(foundationRepository, userRepository, auditRepository, auditWriter, sessionStore)
 	structureService := service.NewStructureService(structureRepository, foundationRepository, auditWriter)
 	peopleService := service.NewPeopleService(peopleRepository, foundationRepository, auditWriter)
+	academicService := service.NewAcademicService(academicRepository, foundationRepository, auditWriter)
 	if cfg.App.Environment == "production" {
 		gin.SetMode(gin.ReleaseMode)
 	}
@@ -111,6 +125,7 @@ func New(ctx context.Context, cfg config.Config) (*App, error) {
 		handler.NewFoundationHandler(foundationService),
 		handler.NewStructureHandler(structureService),
 		handler.NewPeopleHandler(peopleService),
+		handler.NewAcademicHandler(academicService),
 		handler.NewHealthHandler(db, redisClient),
 		jwtManager,
 		userRepository,

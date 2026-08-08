@@ -27,6 +27,11 @@ const (
 	PermissionManageStructure     = "manage_school_structure"
 	PermissionManageStudents      = "manage_students"
 	PermissionManageStaff         = "manage_staff"
+	PermissionManageEnrollments   = "manage_enrollments"
+	PermissionManageAssignments   = "manage_subject_assignments"
+	PermissionManageExams         = "manage_exams"
+	PermissionEnterMarks          = "enter_marks"
+	PermissionViewResults         = "view_results"
 )
 
 type Role struct {

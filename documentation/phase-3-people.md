@@ -1,8 +1,8 @@
-# Phase 3 — People
+# Phase 2B — People
 
 ## Status
 
-Implemented. Phase 3 adds school-scoped student, guardian, address, staff, and employment-status management.
+Implemented. This is the People portion of the project's canonical Phase 2. The existing migration and internal function names retain `phase3` for backward compatibility because this module was originally developed under that number.
 
 ## Scope
 
@@ -20,7 +20,7 @@ For production, use a clean PostgreSQL database with `AUTO_MIGRATE=false` and ap
 
 ## Security correction to the design document
 
-The original table sketches omitted `sch_no` from addresses, guardians, and staff-status history. Those rows contain school-owned personal information, so Phase 3 deliberately adds `sch_no` to all five tables. PostgreSQL RLS can therefore reject cross-school reads and writes directly instead of depending on joins or application behavior.
+The original table sketches omitted `sch_no` from addresses, guardians, and staff-status history. Those rows contain school-owned personal information, so this implementation deliberately adds `sch_no` to all five tables. PostgreSQL RLS can therefore reject cross-school reads and writes directly instead of depending on joins or application behavior.
 
 Composite foreign keys enforce matching school ownership:
 
@@ -34,7 +34,7 @@ Composite foreign keys enforce matching school ownership:
 - `manage_students`: SuperAdmin, SchoolAdmin, and Registrar.
 - `manage_staff`: SuperAdmin and SchoolAdmin.
 
-SuperAdmin must send `X-School-ID` on every Phase 3 endpoint. Other users receive their school from the authenticated database account and cannot override it.
+SuperAdmin must send `X-School-ID` on every People endpoint. Other users receive their school from the authenticated database account and cannot override it.
 
 Addresses are available to an account holding either people permission because they may belong to a student or staff member. Guardians require `manage_students`.
 
@@ -115,7 +115,7 @@ Staff example:
 
 ## Student images
 
-The `image` field stores only a path or object-storage key. Phase 3 does not accept binary uploads. A future storage endpoint must rename files, verify content type, enforce a strict size limit, and store objects outside the API web root before saving the path.
+The `image` field stores only a path or object-storage key. This phase does not accept binary uploads. A future storage endpoint must rename files, verify content type, enforce a strict size limit, and store objects outside the API web root before saving the path.
 
 ## Verification
 

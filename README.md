@@ -5,8 +5,9 @@ Backend foundation built with Go 1.26, Gin, GORM, PostgreSQL, Redis, JWT, Swagge
 Implementation documentation:
 
 - [Phase 1 — Foundation](documentation/phase-1-foundation.md)
-- [Phase 2 — School Structure](documentation/phase-2-school-structure.md)
-- [Phase 3 — People](documentation/phase-3-people.md)
+- [Phase 2A — School Structure](documentation/phase-2-school-structure.md)
+- [Phase 2B — People](documentation/phase-3-people.md)
+- [Phase 3 — Academic](documentation/phase-3-academic.md)
 
 ## Project structure
 
@@ -77,6 +78,14 @@ Environment variables are read from the process environment; `.env` is consumed 
 - `GET|POST /api/v1/staff`
 - `GET|PATCH|DELETE /api/v1/staff/:id`
 - `GET|POST /api/v1/staff/:id/statuses`
+- `GET|POST /api/v1/student-classes`
+- `GET|PATCH|DELETE /api/v1/student-classes/:id`
+- `GET|POST /api/v1/subject-classes`
+- `GET|PATCH|DELETE /api/v1/subject-classes/:id`
+- `GET|POST /api/v1/exam-registrations`
+- `GET|PATCH|DELETE /api/v1/exam-registrations/:id`
+- `GET|POST /api/v1/exam-results`
+- `GET|PATCH|DELETE /api/v1/exam-results/:id`
 - `GET|POST /api/v1/academic-years`
 - `GET|PATCH|DELETE /api/v1/academic-years/:id`
 - `GET|POST /api/v1/users`
@@ -91,7 +100,7 @@ Environment variables are read from the process environment; `.env` is consumed 
 - `GET /api/v1/permissions`
 - `GET /api/v1/audit-logs`
 
-Except for health and login, these endpoints require a Bearer JWT and the documented permission. SuperAdmin must send `X-School-ID` on school-scoped academic-year routes.
+Except for public authentication and health routes, these endpoints require a Bearer JWT and the documented permission. SuperAdmin must send `X-School-ID` on every school-scoped route.
 
 School, user, and role `DELETE` routes are safe deletes: they deactivate or disable the record so historical data remains valid. Academic-year deletion is permanent and returns a conflict when dependent records use the year. Permissions are seeded actions; SuperAdmin composes custom roles by assigning those permissions. Audit logs remain append-only.
 

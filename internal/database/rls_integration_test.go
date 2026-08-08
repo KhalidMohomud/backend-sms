@@ -448,3 +448,232 @@ func TestPhase3RLSIsolatesPeopleData(t *testing.T) {
 	}
 	txSuper.Rollback()
 }
+
+func TestAcademicRLSAndIntegrity(t *testing.T) {
+	dsn := os.Getenv("TEST_DATABASE_DSN")
+	if dsn == "" {
+		t.Skip("TEST_DATABASE_DSN is required for the academic RLS integration test")
+	}
+	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{TranslateError: true})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := MigrateFoundation(db); err != nil {
+		t.Fatal(err)
+	}
+	if err := MigratePhase2(db); err != nil {
+		t.Fatal(err)
+	}
+	if err := MigratePhase3(db); err != nil {
+		t.Fatal(err)
+	}
+	if err := MigrateAcademic(db); err != nil {
+		t.Fatal(err)
+	}
+	if err := SeedFoundation(context.Background(), db); err != nil {
+		t.Fatal(err)
+	}
+	if err := SeedPhase2(context.Background(), db); err != nil {
+		t.Fatal(err)
+	}
+	if err := SeedPhase3(context.Background(), db); err != nil {
+		t.Fatal(err)
+	}
+	if err := SeedAcademic(context.Background(), db); err != nil {
+		t.Fatal(err)
+	}
+	if err := ApplyFoundationRLS(db); err != nil {
+		t.Fatal(err)
+	}
+	if err := ApplyPhase2RLS(db); err != nil {
+		t.Fatal(err)
+	}
+	if err := ApplyPhase3RLS(db); err != nil {
+		t.Fatal(err)
+	}
+	if err := ApplyAcademicRLS(db); err != nil {
+		t.Fatal(err)
+	}
+
+	suffix := time.Now().UTC().UnixNano()
+	schoolA := model.School{Name: fmt.Sprintf("Academic RLS A %d", suffix), Status: model.SchoolStatusActive}
+	schoolB := model.School{Name: fmt.Sprintf("Academic RLS B %d", suffix), Status: model.SchoolStatusActive}
+	if err := db.Create(&schoolA).Error; err != nil {
+		t.Fatal(err)
+	}
+	if err := db.Create(&schoolB).Error; err != nil {
+		t.Fatal(err)
+	}
+	defer func() {
+		schoolIDs := []uint64{schoolA.ID, schoolB.ID}
+		db.Where("sch_no IN ?", schoolIDs).Delete(&model.ExamResult{})
+		db.Where("sch_no IN ?", schoolIDs).Delete(&model.ExamRegistration{})
+		db.Where("sch_no IN ?", schoolIDs).Delete(&model.SubjectClass{})
+		db.Where("sch_no IN ?", schoolIDs).Delete(&model.StudentClass{})
+		db.Where("sch_no IN ?", schoolIDs).Delete(&model.User{})
+		db.Where("sch_no IN ?", schoolIDs).Delete(&model.StaffStatus{})
+		db.Where("sch_no IN ?", schoolIDs).Delete(&model.Staff{})
+		db.Where("sch_no IN ?", schoolIDs).Delete(&model.Student{})
+		db.Where("sch_no IN ?", schoolIDs).Delete(&model.Responsible{})
+		db.Where("sch_no IN ?", schoolIDs).Delete(&model.Address{})
+		db.Where("sch_no IN ?", schoolIDs).Delete(&model.Class{})
+		db.Where("sch_no IN ?", schoolIDs).Delete(&model.Level{})
+		db.Where("sch_no IN ?", schoolIDs).Delete(&model.AcademicYear{})
+		db.Delete(&model.School{}, schoolIDs)
+	}()
+
+	yearStart := time.Date(2026, 9, 1, 0, 0, 0, 0, time.UTC)
+	yearEnd := time.Date(2027, 6, 30, 0, 0, 0, 0, time.UTC)
+	yearA := model.AcademicYear{SchoolID: schoolA.ID, YearName: fmt.Sprintf("A-%d", suffix%1_000_000_000), StartsOn: yearStart, EndsOn: yearEnd}
+	yearB := model.AcademicYear{SchoolID: schoolB.ID, YearName: fmt.Sprintf("B-%d", suffix%1_000_000_000), StartsOn: yearStart, EndsOn: yearEnd}
+	if err := db.Create(&yearA).Error; err != nil {
+		t.Fatal(err)
+	}
+	if err := db.Create(&yearB).Error; err != nil {
+		t.Fatal(err)
+	}
+	levelA := model.Level{SchoolID: schoolA.ID, Name: fmt.Sprintf("Academic A %d", suffix), Status: model.RecordStatusActive}
+	levelB := model.Level{SchoolID: schoolB.ID, Name: fmt.Sprintf("Academic B %d", suffix), Status: model.RecordStatusActive}
+	if err := db.Create(&levelA).Error; err != nil {
+		t.Fatal(err)
+	}
+	if err := db.Create(&levelB).Error; err != nil {
+		t.Fatal(err)
+	}
+	classA := model.Class{SchoolID: schoolA.ID, LevelID: levelA.ID, Name: fmt.Sprintf("Class A %d", suffix), Status: model.RecordStatusActive}
+	classB := model.Class{SchoolID: schoolB.ID, LevelID: levelB.ID, Name: fmt.Sprintf("Class B %d", suffix), Status: model.RecordStatusActive}
+	if err := db.Create(&classA).Error; err != nil {
+		t.Fatal(err)
+	}
+	if err := db.Create(&classB).Error; err != nil {
+		t.Fatal(err)
+	}
+	guardianA := model.Responsible{SchoolID: schoolA.ID, Name: "Academic Guardian A", Phone: fmt.Sprintf("A%d", suffix), Relationship: "Parent"}
+	guardianB := model.Responsible{SchoolID: schoolB.ID, Name: "Academic Guardian B", Phone: fmt.Sprintf("B%d", suffix), Relationship: "Parent"}
+	if err := db.Create(&guardianA).Error; err != nil {
+		t.Fatal(err)
+	}
+	if err := db.Create(&guardianB).Error; err != nil {
+		t.Fatal(err)
+	}
+	studentA := model.Student{SchoolID: schoolA.ID, Name: "Academic Student A", MotherName: "Mother A", Sex: model.SexFemale, ResponsibleID: guardianA.ID, RegisteredOn: yearStart, Status: model.StudentStatusActive}
+	studentB := model.Student{SchoolID: schoolB.ID, Name: "Academic Student B", MotherName: "Mother B", Sex: model.SexMale, ResponsibleID: guardianB.ID, RegisteredOn: yearStart, Status: model.StudentStatusActive}
+	if err := db.Create(&studentA).Error; err != nil {
+		t.Fatal(err)
+	}
+	if err := db.Create(&studentB).Error; err != nil {
+		t.Fatal(err)
+	}
+	var job model.Job
+	var decree model.Decree
+	var subject model.Subject
+	var exam model.Exam
+	if err := db.Where("LOWER(job_name) = 'teacher'").First(&job).Error; err != nil {
+		t.Fatal(err)
+	}
+	if err := db.Where("LOWER(dec_name) = 'permanent'").First(&decree).Error; err != nil {
+		t.Fatal(err)
+	}
+	if err := db.Where("status = ?", model.RecordStatusActive).First(&subject).Error; err != nil {
+		t.Fatal(err)
+	}
+	if err := db.Where("status = ?", model.RecordStatusActive).First(&exam).Error; err != nil {
+		t.Fatal(err)
+	}
+	staffA := model.Staff{SchoolID: schoolA.ID, Name: "Academic Teacher A", Sex: model.SexMale, JobID: job.ID, DecreeID: decree.ID, Salary: 1, HiredDate: yearStart}
+	staffB := model.Staff{SchoolID: schoolB.ID, Name: "Academic Teacher B", Sex: model.SexFemale, JobID: job.ID, DecreeID: decree.ID, Salary: 1, HiredDate: yearStart}
+	if err := db.Create(&staffA).Error; err != nil {
+		t.Fatal(err)
+	}
+	if err := db.Create(&staffB).Error; err != nil {
+		t.Fatal(err)
+	}
+	var schoolAdminRole model.Role
+	if err := db.Where("role_name = ?", model.RoleSchoolAdmin).First(&schoolAdminRole).Error; err != nil {
+		t.Fatal(err)
+	}
+	userA := model.User{SchoolID: &schoolA.ID, Username: fmt.Sprintf("academic-a-%d", suffix), PasswordHash: "integration", RoleID: schoolAdminRole.ID, Status: model.UserStatusActive}
+	userB := model.User{SchoolID: &schoolB.ID, Username: fmt.Sprintf("academic-b-%d", suffix), PasswordHash: "integration", RoleID: schoolAdminRole.ID, Status: model.UserStatusActive}
+	if err := db.Create(&userA).Error; err != nil {
+		t.Fatal(err)
+	}
+	if err := db.Create(&userB).Error; err != nil {
+		t.Fatal(err)
+	}
+	enrollmentA := model.StudentClass{SchoolID: schoolA.ID, StudentID: studentA.ID, ClassID: classA.ID, AcademicYearID: yearA.ID}
+	enrollmentB := model.StudentClass{SchoolID: schoolB.ID, StudentID: studentB.ID, ClassID: classB.ID, AcademicYearID: yearB.ID}
+	if err := db.Create(&enrollmentA).Error; err != nil {
+		t.Fatal(err)
+	}
+	if err := db.Create(&enrollmentB).Error; err != nil {
+		t.Fatal(err)
+	}
+	assignmentA := model.SubjectClass{SchoolID: schoolA.ID, SubjectID: subject.ID, ClassID: classA.ID, StaffID: staffA.ID, AcademicYearID: yearA.ID, MaxMark: 100}
+	assignmentB := model.SubjectClass{SchoolID: schoolB.ID, SubjectID: subject.ID, ClassID: classB.ID, StaffID: staffB.ID, AcademicYearID: yearB.ID, MaxMark: 100}
+	if err := db.Create(&assignmentA).Error; err != nil {
+		t.Fatal(err)
+	}
+	if err := db.Create(&assignmentB).Error; err != nil {
+		t.Fatal(err)
+	}
+	examA := model.ExamRegistration{SchoolID: schoolA.ID, ExamID: exam.ID, AcademicYearID: yearA.ID, StartsOn: yearStart.AddDate(0, 1, 0), EndsOn: yearStart.AddDate(0, 1, 5)}
+	examB := model.ExamRegistration{SchoolID: schoolB.ID, ExamID: exam.ID, AcademicYearID: yearB.ID, StartsOn: yearStart.AddDate(0, 1, 0), EndsOn: yearStart.AddDate(0, 1, 5)}
+	if err := db.Create(&examA).Error; err != nil {
+		t.Fatal(err)
+	}
+	if err := db.Create(&examB).Error; err != nil {
+		t.Fatal(err)
+	}
+	resultA := model.ExamResult{SchoolID: schoolA.ID, ExamRegistrationID: examA.ID, StudentClassID: enrollmentA.ID, SubjectClassID: assignmentA.ID, Marks: 80, RecordedBy: userA.ID}
+	resultB := model.ExamResult{SchoolID: schoolB.ID, ExamRegistrationID: examB.ID, StudentClassID: enrollmentB.ID, SubjectClassID: assignmentB.ID, Marks: 90, RecordedBy: userB.ID}
+	if err := db.Create(&resultA).Error; err != nil {
+		t.Fatal(err)
+	}
+	if err := db.Create(&resultB).Error; err != nil {
+		t.Fatal(err)
+	}
+
+	principalA := authz.Principal{UserID: userA.ID, SchoolID: &schoolA.ID, Role: model.RoleSchoolAdmin}
+	ctxA, txA, err := BeginRequest(context.Background(), db, SecurityScope{Principal: principalA})
+	if err != nil {
+		t.Fatal(err)
+	}
+	assertOnlyAcademicTenant := func(table, idColumn string, ids []uint64, expected uint64) {
+		t.Helper()
+		var visible []uint64
+		if err := FromContext(ctxA, db).Table(table).Where(idColumn+" IN ?", ids).Pluck(idColumn, &visible).Error; err != nil {
+			t.Fatal(err)
+		}
+		if len(visible) != 1 || visible[0] != expected {
+			t.Fatalf("%s visible IDs = %v, want [%d]", table, visible, expected)
+		}
+	}
+	assertOnlyAcademicTenant("student_classes", "sc_no", []uint64{enrollmentA.ID, enrollmentB.ID}, enrollmentA.ID)
+	assertOnlyAcademicTenant("subject_classes", "sb_cl_no", []uint64{assignmentA.ID, assignmentB.ID}, assignmentA.ID)
+	assertOnlyAcademicTenant("exam_registrations", "ex_r_no", []uint64{examA.ID, examB.ID}, examA.ID)
+	assertOnlyAcademicTenant("exam_results", "res_no", []uint64{resultA.ID, resultB.ID}, resultA.ID)
+	forbidden := model.StudentClass{SchoolID: schoolB.ID, StudentID: studentB.ID, ClassID: classB.ID, AcademicYearID: yearB.ID}
+	if err := FromContext(ctxA, db).Create(&forbidden).Error; err == nil {
+		t.Fatal("school A inserted a school B enrollment")
+	}
+	txA.Rollback()
+
+	tooHigh := model.ExamResult{SchoolID: schoolA.ID, ExamRegistrationID: examA.ID, StudentClassID: enrollmentA.ID, SubjectClassID: assignmentA.ID, Marks: 101, RecordedBy: userA.ID}
+	if err := db.Create(&tooHigh).Error; err == nil {
+		t.Fatal("database accepted marks above subject_classes.max_mark")
+	}
+
+	super := authz.Principal{UserID: 910000, Role: model.RoleSuperAdmin}
+	ctxSuper, txSuper, err := BeginRequest(context.Background(), db, SecurityScope{Principal: super})
+	if err != nil {
+		t.Fatal(err)
+	}
+	var visibleResults int64
+	if err := FromContext(ctxSuper, db).Model(&model.ExamResult{}).Where("res_no IN ?", []uint64{resultA.ID, resultB.ID}).Count(&visibleResults).Error; err != nil {
+		t.Fatal(err)
+	}
+	if visibleResults != 2 {
+		t.Fatalf("SuperAdmin saw %d academic results; want 2", visibleResults)
+	}
+	txSuper.Rollback()
+}

@@ -10,6 +10,8 @@ definitions:
         type: string
       school_id:
         type: integer
+      staff_id:
+        type: integer
       user_id:
         type: integer
     type: object
@@ -109,6 +111,69 @@ definitions:
         type: string
       status:
         $ref: '#/definitions/model.RecordStatus'
+      updated_at:
+        type: string
+    type: object
+  model.Exam:
+    properties:
+      created_at:
+        type: string
+      id:
+        type: integer
+      name:
+        type: string
+      status:
+        $ref: '#/definitions/model.RecordStatus'
+      updated_at:
+        type: string
+    type: object
+  model.ExamRegistration:
+    properties:
+      academic_year:
+        $ref: '#/definitions/model.AcademicYear'
+      academic_year_id:
+        type: integer
+      created_at:
+        type: string
+      ends_on:
+        type: string
+      exam:
+        $ref: '#/definitions/model.Exam'
+      exam_id:
+        type: integer
+      id:
+        type: integer
+      school_id:
+        type: integer
+      starts_on:
+        type: string
+      updated_at:
+        type: string
+    type: object
+  model.ExamResult:
+    properties:
+      created_at:
+        type: string
+      exam_registration:
+        $ref: '#/definitions/model.ExamRegistration'
+      exam_registration_id:
+        type: integer
+      id:
+        type: integer
+      marks:
+        type: number
+      recorded_by:
+        type: integer
+      school_id:
+        type: integer
+      student_class:
+        $ref: '#/definitions/model.StudentClass'
+      student_class_id:
+        type: integer
+      subject_class:
+        $ref: '#/definitions/model.SubjectClass'
+      subject_class_id:
+        type: integer
       updated_at:
         type: string
     type: object
@@ -363,6 +428,29 @@ definitions:
       updated_at:
         type: string
     type: object
+  model.StudentClass:
+    properties:
+      academic_year:
+        $ref: '#/definitions/model.AcademicYear'
+      academic_year_id:
+        type: integer
+      class:
+        $ref: '#/definitions/model.Class'
+      class_id:
+        type: integer
+      created_at:
+        type: string
+      id:
+        type: integer
+      school_id:
+        type: integer
+      student_id:
+        type: integer
+      student_name:
+        type: string
+      updated_at:
+        type: string
+    type: object
   model.StudentStatus:
     enum:
     - active
@@ -375,6 +463,48 @@ definitions:
     - StudentStatusGraduated
     - StudentStatusTransferred
     - StudentStatusDropped
+  model.Subject:
+    properties:
+      created_at:
+        type: string
+      id:
+        type: integer
+      name:
+        type: string
+      status:
+        $ref: '#/definitions/model.RecordStatus'
+      updated_at:
+        type: string
+    type: object
+  model.SubjectClass:
+    properties:
+      academic_year:
+        $ref: '#/definitions/model.AcademicYear'
+      academic_year_id:
+        type: integer
+      class:
+        $ref: '#/definitions/model.Class'
+      class_id:
+        type: integer
+      created_at:
+        type: string
+      id:
+        type: integer
+      max_mark:
+        type: number
+      school_id:
+        type: integer
+      staff_id:
+        type: integer
+      staff_name:
+        type: string
+      subject:
+        $ref: '#/definitions/model.Subject'
+      subject_id:
+        type: integer
+      updated_at:
+        type: string
+    type: object
   model.User:
     properties:
       created_at:
@@ -497,6 +627,52 @@ definitions:
     required:
     - level_id
     - name
+    type: object
+  service.CreateExamRegistrationInput:
+    properties:
+      academic_year_id:
+        example: 1
+        minimum: 1
+        type: integer
+      ends_on:
+        example: "2026-10-07"
+        type: string
+      exam_id:
+        example: 1
+        minimum: 1
+        type: integer
+      starts_on:
+        example: "2026-10-01"
+        type: string
+    required:
+    - academic_year_id
+    - ends_on
+    - exam_id
+    - starts_on
+    type: object
+  service.CreateExamResultInput:
+    properties:
+      exam_registration_id:
+        example: 1
+        minimum: 1
+        type: integer
+      marks:
+        example: 85
+        maximum: 999.99
+        minimum: 0
+        type: number
+      student_class_id:
+        example: 1
+        minimum: 1
+        type: integer
+      subject_class_id:
+        example: 1
+        minimum: 1
+        type: integer
+    required:
+    - exam_registration_id
+    - student_class_id
+    - subject_class_id
     type: object
   service.CreateLevelInput:
     properties:
@@ -658,6 +834,25 @@ definitions:
     - status_date
     - status_type_id
     type: object
+  service.CreateStudentClassInput:
+    properties:
+      academic_year_id:
+        example: 1
+        minimum: 1
+        type: integer
+      class_id:
+        example: 1
+        minimum: 1
+        type: integer
+      student_id:
+        example: 1
+        minimum: 1
+        type: integer
+    required:
+    - academic_year_id
+    - class_id
+    - student_id
+    type: object
   service.CreateStudentInput:
     properties:
       address_id:
@@ -714,6 +909,34 @@ definitions:
     - name
     - registered_on
     - sex
+    type: object
+  service.CreateSubjectClassInput:
+    properties:
+      academic_year_id:
+        example: 1
+        minimum: 1
+        type: integer
+      class_id:
+        example: 1
+        minimum: 1
+        type: integer
+      max_mark:
+        example: 100
+        maximum: 999.99
+        type: number
+      staff_id:
+        example: 1
+        minimum: 1
+        type: integer
+      subject_id:
+        example: 1
+        minimum: 1
+        type: integer
+    required:
+    - academic_year_id
+    - class_id
+    - staff_id
+    - subject_id
     type: object
   service.CreateUserInput:
     properties:
@@ -838,6 +1061,29 @@ definitions:
         - active
         - inactive
         example: active
+    type: object
+  service.UpdateExamRegistrationInput:
+    properties:
+      academic_year_id:
+        minimum: 1
+        type: integer
+      ends_on:
+        type: string
+      exam_id:
+        minimum: 1
+        type: integer
+      starts_on:
+        type: string
+    type: object
+  service.UpdateExamResultInput:
+    properties:
+      marks:
+        example: 88
+        maximum: 999.99
+        minimum: 0
+        type: number
+    required:
+    - marks
     type: object
   service.UpdateLevelInput:
     properties:
@@ -969,6 +1215,18 @@ definitions:
         - M
         - F
     type: object
+  service.UpdateStudentClassInput:
+    properties:
+      academic_year_id:
+        minimum: 1
+        type: integer
+      class_id:
+        minimum: 1
+        type: integer
+      student_id:
+        minimum: 1
+        type: integer
+    type: object
   service.UpdateStudentInput:
     properties:
       address_id:
@@ -1014,6 +1272,24 @@ definitions:
         - graduated
         - transferred
         - dropped
+    type: object
+  service.UpdateSubjectClassInput:
+    properties:
+      academic_year_id:
+        minimum: 1
+        type: integer
+      class_id:
+        minimum: 1
+        type: integer
+      max_mark:
+        maximum: 999.99
+        type: number
+      staff_id:
+        minimum: 1
+        type: integer
+      subject_id:
+        minimum: 1
+        type: integer
     type: object
   service.UpdateUserInput:
     properties:
@@ -1637,6 +1913,272 @@ paths:
       summary: Update a class
       tags:
       - structure
+  /exam-registrations:
+    get:
+      parameters:
+      - description: Required for SuperAdmin
+        in: header
+        name: X-School-ID
+        type: integer
+      - description: Academic year ID
+        in: query
+        name: academic_year_id
+        type: integer
+      - description: Exam type ID
+        in: query
+        name: exam_id
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/model.ExamRegistration'
+            type: array
+      security:
+      - BearerAuth: []
+      summary: List scheduled exams
+      tags:
+      - academic
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Required for SuperAdmin
+        in: header
+        name: X-School-ID
+        type: integer
+      - description: Exam schedule
+        in: body
+        name: payload
+        required: true
+        schema:
+          $ref: '#/definitions/service.CreateExamRegistrationInput'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/model.ExamRegistration'
+      security:
+      - BearerAuth: []
+      summary: Schedule an exam inside an academic year
+      tags:
+      - academic
+  /exam-registrations/{id}:
+    delete:
+      parameters:
+      - description: Required for SuperAdmin
+        in: header
+        name: X-School-ID
+        type: integer
+      - description: Exam registration ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      responses:
+        "204":
+          description: No Content
+      security:
+      - BearerAuth: []
+      summary: Delete a scheduled exam with no results
+      tags:
+      - academic
+    get:
+      parameters:
+      - description: Required for SuperAdmin
+        in: header
+        name: X-School-ID
+        type: integer
+      - description: Exam registration ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.ExamRegistration'
+      security:
+      - BearerAuth: []
+      summary: Get a scheduled exam
+      tags:
+      - academic
+    patch:
+      consumes:
+      - application/json
+      parameters:
+      - description: Required for SuperAdmin
+        in: header
+        name: X-School-ID
+        type: integer
+      - description: Exam registration ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Fields to update
+        in: body
+        name: payload
+        required: true
+        schema:
+          $ref: '#/definitions/service.UpdateExamRegistrationInput'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.ExamRegistration'
+      security:
+      - BearerAuth: []
+      summary: Update a scheduled exam
+      tags:
+      - academic
+  /exam-results:
+    get:
+      parameters:
+      - description: Required for SuperAdmin
+        in: header
+        name: X-School-ID
+        type: integer
+      - description: Exam registration ID
+        in: query
+        name: exam_registration_id
+        type: integer
+      - description: Enrollment ID
+        in: query
+        name: student_class_id
+        type: integer
+      - description: Subject assignment ID
+        in: query
+        name: subject_class_id
+        type: integer
+      - description: Student ID
+        in: query
+        name: student_id
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/model.ExamResult'
+            type: array
+      security:
+      - BearerAuth: []
+      summary: List exam results
+      tags:
+      - academic
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Required for SuperAdmin
+        in: header
+        name: X-School-ID
+        type: integer
+      - description: Result details
+        in: body
+        name: payload
+        required: true
+        schema:
+          $ref: '#/definitions/service.CreateExamResultInput'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/model.ExamResult'
+      security:
+      - BearerAuth: []
+      summary: Record a student's subject mark
+      tags:
+      - academic
+  /exam-results/{id}:
+    delete:
+      parameters:
+      - description: Required for SuperAdmin
+        in: header
+        name: X-School-ID
+        type: integer
+      - description: Exam result ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      responses:
+        "204":
+          description: No Content
+      security:
+      - BearerAuth: []
+      summary: Delete an exam result
+      tags:
+      - academic
+    get:
+      parameters:
+      - description: Required for SuperAdmin
+        in: header
+        name: X-School-ID
+        type: integer
+      - description: Exam result ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.ExamResult'
+      security:
+      - BearerAuth: []
+      summary: Get an exam result
+      tags:
+      - academic
+    patch:
+      consumes:
+      - application/json
+      parameters:
+      - description: Required for SuperAdmin
+        in: header
+        name: X-School-ID
+        type: integer
+      - description: Exam result ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Corrected mark
+        in: body
+        name: payload
+        required: true
+        schema:
+          $ref: '#/definitions/service.UpdateExamResultInput'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.ExamResult'
+      security:
+      - BearerAuth: []
+      summary: Correct an exam mark
+      tags:
+      - academic
   /guardians:
     get:
       parameters:
@@ -2566,6 +3108,151 @@ paths:
       summary: Append an employment status event
       tags:
       - people
+  /student-classes:
+    get:
+      parameters:
+      - description: Required for SuperAdmin
+        in: header
+        name: X-School-ID
+        type: integer
+      - description: Academic year ID
+        in: query
+        name: academic_year_id
+        type: integer
+      - description: Class ID
+        in: query
+        name: class_id
+        type: integer
+      - description: Student ID
+        in: query
+        name: student_id
+        type: integer
+      - description: Student name search
+        in: query
+        name: search
+        type: string
+      - description: Page size, maximum 100
+        in: query
+        name: limit
+        type: integer
+      - description: Pagination offset
+        in: query
+        name: offset
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/model.StudentClass'
+            type: array
+      security:
+      - BearerAuth: []
+      summary: List student enrollments
+      tags:
+      - academic
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Required for SuperAdmin
+        in: header
+        name: X-School-ID
+        type: integer
+      - description: Enrollment details
+        in: body
+        name: payload
+        required: true
+        schema:
+          $ref: '#/definitions/service.CreateStudentClassInput'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/model.StudentClass'
+      security:
+      - BearerAuth: []
+      summary: Enroll a student in a class and academic year
+      tags:
+      - academic
+  /student-classes/{id}:
+    delete:
+      parameters:
+      - description: Required for SuperAdmin
+        in: header
+        name: X-School-ID
+        type: integer
+      - description: Enrollment ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      responses:
+        "204":
+          description: No Content
+      security:
+      - BearerAuth: []
+      summary: Delete an unused student enrollment
+      tags:
+      - academic
+    get:
+      parameters:
+      - description: Required for SuperAdmin
+        in: header
+        name: X-School-ID
+        type: integer
+      - description: Enrollment ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.StudentClass'
+      security:
+      - BearerAuth: []
+      summary: Get a student enrollment
+      tags:
+      - academic
+    patch:
+      consumes:
+      - application/json
+      parameters:
+      - description: Required for SuperAdmin
+        in: header
+        name: X-School-ID
+        type: integer
+      - description: Enrollment ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Fields to update
+        in: body
+        name: payload
+        required: true
+        schema:
+          $ref: '#/definitions/service.UpdateStudentClassInput'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.StudentClass'
+      security:
+      - BearerAuth: []
+      summary: Update a student enrollment
+      tags:
+      - academic
   /students:
     get:
       parameters:
@@ -2703,6 +3390,143 @@ paths:
       summary: Update a student
       tags:
       - people
+  /subject-classes:
+    get:
+      parameters:
+      - description: Required for SuperAdmin
+        in: header
+        name: X-School-ID
+        type: integer
+      - description: Academic year ID
+        in: query
+        name: academic_year_id
+        type: integer
+      - description: Class ID
+        in: query
+        name: class_id
+        type: integer
+      - description: Subject ID
+        in: query
+        name: subject_id
+        type: integer
+      - description: Teacher staff ID
+        in: query
+        name: staff_id
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/model.SubjectClass'
+            type: array
+      security:
+      - BearerAuth: []
+      summary: List class subject and teacher assignments
+      tags:
+      - academic
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Required for SuperAdmin
+        in: header
+        name: X-School-ID
+        type: integer
+      - description: Assignment details
+        in: body
+        name: payload
+        required: true
+        schema:
+          $ref: '#/definitions/service.CreateSubjectClassInput'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/model.SubjectClass'
+      security:
+      - BearerAuth: []
+      summary: Assign a subject and teacher to a class
+      tags:
+      - academic
+  /subject-classes/{id}:
+    delete:
+      parameters:
+      - description: Required for SuperAdmin
+        in: header
+        name: X-School-ID
+        type: integer
+      - description: Assignment ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      responses:
+        "204":
+          description: No Content
+      security:
+      - BearerAuth: []
+      summary: Delete an unused class subject assignment
+      tags:
+      - academic
+    get:
+      parameters:
+      - description: Required for SuperAdmin
+        in: header
+        name: X-School-ID
+        type: integer
+      - description: Assignment ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.SubjectClass'
+      security:
+      - BearerAuth: []
+      summary: Get a class subject assignment
+      tags:
+      - academic
+    patch:
+      consumes:
+      - application/json
+      parameters:
+      - description: Required for SuperAdmin
+        in: header
+        name: X-School-ID
+        type: integer
+      - description: Assignment ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Fields to update
+        in: body
+        name: payload
+        required: true
+        schema:
+          $ref: '#/definitions/service.UpdateSubjectClassInput'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.SubjectClass'
+      security:
+      - BearerAuth: []
+      summary: Update a class subject assignment
+      tags:
+      - academic
   /users:
     get:
       parameters:

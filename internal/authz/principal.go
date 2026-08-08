@@ -6,6 +6,7 @@ import "backendapi/internal/model"
 type Principal struct {
 	UserID      uint64   `json:"user_id"`
 	SchoolID    *uint64  `json:"school_id,omitempty"`
+	StaffID     *uint64  `json:"staff_id,omitempty"`
 	Role        string   `json:"role"`
 	Permissions []string `json:"permissions"`
 }
@@ -14,6 +15,7 @@ func FromUser(user *model.User) Principal {
 	return Principal{
 		UserID:      user.ID,
 		SchoolID:    user.SchoolID,
+		StaffID:     user.StaffID,
 		Role:        user.Role.Name,
 		Permissions: user.PermissionNames(),
 	}

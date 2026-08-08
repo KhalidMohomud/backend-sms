@@ -19,6 +19,7 @@ func New(
 	foundation *handler.FoundationHandler,
 	structure *handler.StructureHandler,
 	people *handler.PeopleHandler,
+	academic *handler.AcademicHandler,
 	health *handler.HealthHandler,
 	jwt *security.JWTManager,
 	users repository.UserRepository,
@@ -100,6 +101,34 @@ func New(
 			staff.DELETE("/:id", people.ArchiveStaff)
 			staff.GET("/:id/statuses", people.ListStaffStatuses)
 			staff.POST("/:id/statuses", people.CreateStaffStatus)
+
+			studentClasses := secured.Group("/student-classes", middleware.RequireSchool())
+			studentClasses.GET("", academic.ListStudentClasses)
+			studentClasses.GET("/:id", academic.GetStudentClass)
+			studentClasses.POST("", middleware.RequirePermission(model.PermissionManageEnrollments), academic.CreateStudentClass)
+			studentClasses.PATCH("/:id", middleware.RequirePermission(model.PermissionManageEnrollments), academic.UpdateStudentClass)
+			studentClasses.DELETE("/:id", middleware.RequirePermission(model.PermissionManageEnrollments), academic.DeleteStudentClass)
+
+			subjectClasses := secured.Group("/subject-classes", middleware.RequireSchool())
+			subjectClasses.GET("", academic.ListSubjectClasses)
+			subjectClasses.GET("/:id", academic.GetSubjectClass)
+			subjectClasses.POST("", middleware.RequirePermission(model.PermissionManageAssignments), academic.CreateSubjectClass)
+			subjectClasses.PATCH("/:id", middleware.RequirePermission(model.PermissionManageAssignments), academic.UpdateSubjectClass)
+			subjectClasses.DELETE("/:id", middleware.RequirePermission(model.PermissionManageAssignments), academic.DeleteSubjectClass)
+
+			examRegistrations := secured.Group("/exam-registrations", middleware.RequireSchool())
+			examRegistrations.GET("", academic.ListExamRegistrations)
+			examRegistrations.GET("/:id", academic.GetExamRegistration)
+			examRegistrations.POST("", middleware.RequirePermission(model.PermissionManageExams), academic.CreateExamRegistration)
+			examRegistrations.PATCH("/:id", middleware.RequirePermission(model.PermissionManageExams), academic.UpdateExamRegistration)
+			examRegistrations.DELETE("/:id", middleware.RequirePermission(model.PermissionManageExams), academic.DeleteExamRegistration)
+
+			examResults := secured.Group("/exam-results", middleware.RequireSchool())
+			examResults.GET("", academic.ListExamResults)
+			examResults.GET("/:id", academic.GetExamResult)
+			examResults.POST("", middleware.RequirePermission(model.PermissionEnterMarks), academic.CreateExamResult)
+			examResults.PATCH("/:id", middleware.RequirePermission(model.PermissionEnterMarks), academic.UpdateExamResult)
+			examResults.DELETE("/:id", middleware.RequirePermission(model.PermissionEnterMarks), academic.DeleteExamResult)
 
 			schools := secured.Group("/schools", middleware.RequirePermission(model.PermissionManageSchools))
 			schools.GET("", foundation.ListSchools)

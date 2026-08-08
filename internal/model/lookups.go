@@ -23,21 +23,21 @@ type Decree struct {
 func (Decree) TableName() string { return "decrees" }
 
 type Subject struct {
-	ID        uint64       `gorm:"column:sub_no;primaryKey"`
-	Name      string       `gorm:"column:sub_name;size:60;not null"`
-	Status    RecordStatus `gorm:"type:varchar(20);not null;default:active;check:ck_subjects_status,status IN ('active','inactive')"`
-	CreatedAt time.Time
-	UpdatedAt time.Time
+	ID        uint64       `gorm:"column:sub_no;primaryKey" json:"id"`
+	Name      string       `gorm:"column:sub_name;size:60;not null" json:"name"`
+	Status    RecordStatus `gorm:"type:varchar(20);not null;default:active;check:ck_subjects_status,status IN ('active','inactive')" json:"status"`
+	CreatedAt time.Time    `json:"created_at"`
+	UpdatedAt time.Time    `json:"updated_at"`
 }
 
 func (Subject) TableName() string { return "subjects" }
 
 type Exam struct {
-	ID        uint64       `gorm:"column:ex_no;primaryKey"`
-	Name      string       `gorm:"column:ex_name;size:60;not null"`
-	Status    RecordStatus `gorm:"type:varchar(20);not null;default:active;check:ck_exams_status,status IN ('active','inactive')"`
-	CreatedAt time.Time
-	UpdatedAt time.Time
+	ID        uint64       `gorm:"column:ex_no;primaryKey" json:"id"`
+	Name      string       `gorm:"column:ex_name;size:60;not null" json:"name"`
+	Status    RecordStatus `gorm:"type:varchar(20);not null;default:active;check:ck_exams_status,status IN ('active','inactive')" json:"status"`
+	CreatedAt time.Time    `json:"created_at"`
+	UpdatedAt time.Time    `json:"updated_at"`
 }
 
 func (Exam) TableName() string { return "exams" }
